@@ -329,39 +329,44 @@ async function completeSale(){
 }
 
 async function printReceipt(sale){
- const branch=branches.find(b=>b.id===currentBranch());
- const customer=customers.find(c=>c.id===$('customer').value);
- const width=Number(companyInfo.receipt_paper_mm)===58?'58mm':'80mm';
- const {data:receiptItems,error:receiptItemsError}=await supabase.from('sale_items')
-  .select('quantity,unit_price,line_total,medicine_id,batch_id')
-  .eq('sale_id',sale.sale_id);
- if(receiptItemsError){notice('Mauzo yamehifadhiwa lakini bidhaa za risiti hazikupatikana: '+receiptItemsError.message,'error');return}
+ const branch=branches.find(b=>b.id===(sale.branch_id||currentBranch()));
+ const customer=customers.find(c=>c.id===(sale.customer_id||$('customer').value));
+ const paper=Number(companyInfo.receipt_paper_mm)===58?58:80;
+ const saleId=sale.sale_id||sale.id;
+ const {data:receiptItems,error}=await supabase.from('sale_items').select('quantity,unit_price,line_total,medicine_id').eq('sale_id',saleId);
+ if(error){notice('Risiti haikuandaliwa: '+error.message,'error');return}
  const medicineNames=new Map(medicines.map(m=>[m.id,m.name]));
- const html=`<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${escapeHtml(sale.sale_number)}</title>
- <style>@page{size:${width} auto;margin:3mm}body{font:12px Arial;width:100%;margin:0;color:#000}h2,p{text-align:center;margin:4px 0}.line{border-top:1px dashed #000;margin:8px 0}.row{display:flex;justify-content:space-between;gap:5px;margin:5px 0}.center{text-align:center}.small{font-size:10px}</style></head><body>
- <h2>${escapeHtml(companyInfo.name||'HAGAI PHARMACY')}</h2>
- <p>${escapeHtml(companyInfo.address||'')}</p><p>${escapeHtml(companyInfo.phone||'')}</p>
- <div class="line"></div><p>RISITI YA MAUZO</p>
- <p>${escapeHtml(sale.sale_number)}</p><p>${new Date().toLocaleString('sw-TZ')}</p>
- <p>Tawi: ${escapeHtml(branch?.name||'')}</p>
- <p>Mteja: ${escapeHtml(customer?.full_name||'Mteja wa kawaida')}</p>
- <div class="line"></div>
- ${(receiptItems||[]).map(item=>`<div class="row"><span>${escapeHtml(medicineNames.get(item.medicine_id)||'Dawa')} × ${Number(item.quantity)}</span><b>${money(item.line_total)}</b></div>`).join('')}
- <div class="line"></div>
- <div class="row"><b>Jumla</b><b>${money(sale.total)}</b></div>
- <div class="row"><span>Subtotal</span><span>${money(sale.subtotal)}</span></div>
- <div class="row"><span>Punguzo</span><span>${money(sale.discount)}</span></div>
- <div class="row"><span>Kodi</span><span>${money(sale.tax)}</span></div>
- <div class="row"><span>Imelipwa</span><span>${money(sale.amount_paid)}</span></div>
- <div class="row"><b>Salio</b><b>${money(sale.balance)}</b></div>
- <div class="line"></div><p>${escapeHtml(companyInfo.receipt_footer||'Asante kwa kutuhudumia!')}</p>
- <p class="small">HAGAI PHARMACY MANAGEMENT</p>
- <script>window.onload=()=>window.print();<\/script></body></html>`;
- const w=window.open('','_blank','width=420,height=650');
+ const rows=(receiptItems||[]).map(item=>`<tr><td class="item-name">${escapeHtml(medicineNames.get(item.medicine_id)||'Dawa')}<small>${Number(item.quantity)} × ${money(item.unit_price)}</small></td><td class="item-total">${money(item.line_total)}</td></tr>`).join('');
+ const logo=companyInfo.logo_url?`<img class="logo" src="${escapeHtml(companyInfo.logo_url)}" alt="Logo">`:'';
+ const date=new Date(sale.sale_date||new Date()).toLocaleString('sw-TZ');
+ const total=Number(sale.total||0),paid=Number(sale.amount_paid||0);
+ const html=`<!doctype html><html lang="sw"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Risiti ${escapeHtml(sale.sale_number)}</title>
+ <style>
+ *{box-sizing:border-box}@page{size:${paper}mm auto;margin:3mm}body{margin:0;background:#fff;color:#111;font:11px/1.4 Arial,sans-serif}
+ .receipt{width:100%;max-width:${paper-6}mm;margin:0 auto;padding:2mm 1mm}.brand{text-align:center;padding:3px 0 8px;border-bottom:1px dashed #333}
+ .logo{display:block;max-width:34mm;max-height:17mm;object-fit:contain;margin:0 auto 5px;filter:grayscale(1)}
+ .brand h1{font-size:16px;line-height:1.15;margin:3px 0;font-weight:800;text-transform:uppercase;overflow-wrap:anywhere}.brand p{margin:2px 0;font-size:10px}
+ .ribbon{text-align:center;font-size:13px;font-weight:800;letter-spacing:1.5px;margin:9px 0 5px}
+ .meta{font-size:10px;margin:7px 0}.meta div{display:flex;justify-content:space-between;gap:5px;margin:2px 0}
+ .rule{border:0;border-top:1px dashed #333;margin:7px 0}table{width:100%;border-collapse:collapse;font-size:10px}
+ td{padding:4px 0;vertical-align:top}.item-name{width:70%;overflow-wrap:anywhere}.item-name small{display:block;font-size:9px;color:#333}.item-total{text-align:right;white-space:nowrap;font-weight:700}
+ .totals div{display:flex;justify-content:space-between;gap:8px;margin:4px 0;font-size:10px}
+ .grand{border-top:1px solid #111;border-bottom:1px solid #111;padding:7px 0;margin:7px 0!important;font-size:14px!important;font-weight:900}
+ .balance{font-weight:800}.thanks{text-align:center;margin-top:12px;font-size:10px}.thanks strong{display:block;font-size:11px;margin-bottom:3px}.system{text-align:center;font-size:8px;color:#555;margin-top:9px}
+ @media screen{body{background:#e9edf2;padding:18px}.receipt{background:white;box-shadow:0 5px 25px #0002;padding:5mm}}
+ @media print{body{background:white}.receipt{max-width:none;padding:0}}
+ </style></head><body><article class="receipt">
+ <header class="brand">${logo}<h1>${escapeHtml(companyInfo.name||'HAGAI PHARMACY')}</h1><p>${escapeHtml(branch?.name||'')}</p><p>${escapeHtml(companyInfo.address||'')}</p><p>${escapeHtml(companyInfo.phone||'')}</p>${companyInfo.email?`<p>${escapeHtml(companyInfo.email)}</p>`:''}</header>
+ <div class="ribbon">RISITI YA MAUZO</div>
+ <section class="meta"><div><span>Namba ya risiti</span><b>${escapeHtml(sale.sale_number||'')}</b></div><div><span>Tarehe</span><b>${escapeHtml(date)}</b></div><div><span>Mteja</span><b>${escapeHtml(customer?.full_name||'Mteja wa kawaida')}</b></div><div><span>Malipo</span><b>${escapeHtml(sale.payment_method||'')}</b></div></section>
+ <hr class="rule"><table><tbody>${rows}</tbody></table><hr class="rule">
+ <section class="totals"><div><span>Jumla ndogo</span><b>${money(sale.subtotal)}</b></div><div><span>Punguzo</span><b>${money(sale.discount)}</b></div><div><span>Kodi</span><b>${money(sale.tax)}</b></div><div class="grand"><span>JUMLA</span><span>${money(total)} TSh</span></div><div><span>Kiasi kilicholipwa</span><b>${money(paid)}</b></div><div class="balance"><span>Salio</span><b>${money(Math.max(0,total-paid))}</b></div></section>
+ <hr class="rule"><footer class="thanks"><strong>${escapeHtml(companyInfo.receipt_footer||'ASANTE KWA KUFANYA BIASHARA NASI!')}</strong>Karibu tena.</footer><div class="system">HAGAI PHARMACY MANAGEMENT SYSTEM</div>
+ </article><script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`;
+ const w=window.open('','_blank','width=460,height=720');
  if(!w){notice('Ruhusu pop-up ili kuchapisha risiti.','error');return}
- w.document.write(html);w.document.close();
+ w.document.open();w.document.write(html);w.document.close();
 }
-
 async function createInvoice(saleId,saleNumber){
  try{
   const {data:sale,error:saleError}=await supabase.from('sales').select('*').eq('id',saleId).single();
@@ -427,7 +432,7 @@ async function printInvoice(invoiceId){
 async function loadSales(){
  const branchId=currentBranch();
  if(!branchId)return;
- const {data,error}=await supabase.from('sales').select('id,sale_number,sale_date,total,amount_paid,payment_method')
+ const {data,error}=await supabase.from('sales').select('id,sale_number,sale_date,total,subtotal,discount,tax,amount_paid,payment_method,customer_id,branch_id')
   .eq('company_id',access.company_id).eq('branch_id',branchId)
   .order('sale_date',{ascending:false}).limit(30);
  if(error)throw error;
@@ -440,11 +445,7 @@ async function loadSales(){
  $('salesRows').querySelectorAll('[data-receipt]').forEach(btn=>btn.addEventListener('click',async()=>{
   const {data:s,error}=await supabase.from('sales').select('*').eq('id',btn.dataset.receipt).single();
   if(error){notice(error.message,'error');return}
-  const {data:its,error:ie}=await supabase.from('sale_items').select('quantity,unit_price,line_total,medicine_id').eq('sale_id',s.id);
-  if(ie){notice(ie.message,'error');return}
-  const names=its.map(x=>`${getMedicine(x.medicine_id)?.name||'Dawa'} × ${x.quantity} = ${money(x.line_total)}`).join('\n');
-  const w=window.open('','_blank','width=420,height=650');
-  if(w){w.document.write(`<pre>${escapeHtml(companyInfo.name||'HAGAI PHARMACY')}\n${escapeHtml(s.sale_number)}\n${escapeHtml(names)}\nJumla: ${money(s.total)}\nImelipwa: ${money(s.amount_paid)}\nSalio: ${money(Number(s.total)-Number(s.amount_paid))}\n${escapeHtml(companyInfo.receipt_footer||'Asante!')}</pre><script>window.onload=()=>window.print();<\/script>`);w.document.close()}
+  printReceipt(s);
  }));
  $('salesRows').querySelectorAll('[data-invoice]').forEach(btn=>btn.addEventListener('click',()=>createInvoice(btn.dataset.invoice,btn.dataset.number)));
 }
