@@ -6,7 +6,7 @@
 <title>HAGAI PHARMACY MANAGEMENT SYSTEM</title>
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body class="dashboard-page">
 <aside class="sidebar">
   <h2>✚ HAGAI</h2>
   <small>PHARMACY MANAGEMENT</small>
@@ -41,11 +41,13 @@
 
 <section class="content">
   <div class="heading">
-    <div><h1>Dashboard</h1><p>Welcome to HAGAI PHARMACY MANAGEMENT SYSTEM</p></div>
+    <div><h1>Muhtasari wa Biashara</h1><p>Karibu kwenye HAGAI PHARMACY · Kituo chako cha usimamizi</p></div>
     <select id="branch" onchange="changeBranch()">
       <option value="all">Inapakia matawi...</option>
     </select>
   </div>
+
+  <div id="dashboardMessage" class="dashboard-status" role="status" aria-live="polite">Inaandaa Dashboard...</div>
 
   <div class="quick-actions" aria-label="Kazi kuu za pharmacy">
     <a class="quick-action" href="pages/sales.html"><span class="quick-icon">🛒</span><span><strong>UUZA DAWA</strong><small>Fungua sehemu ya mauzo</small></span><b>→</b></a>
@@ -55,30 +57,30 @@
   </div>
 
   <div class="stats">
-    <article><small>Total Sales</small><h2 id="sales">Inapakia...</h2><em>TSh · Sales summary</em></article>
-    <article><small>Total Purchases</small><h2 id="purchases">Inapakia...</h2><em>TSh · Purchases</em></article>
-    <article><small>Total Profit</small><h2 id="profit">Inapakia...</h2><em>TSh · Estimated</em></article>
-    <article><small>Total Customers</small><h2 id="customers">Inapakia...</h2><em>Registered customers</em></article>
-    <article><small>Low Stock Items</small><h2 class="red" id="low">Inapakia...</h2><em>Require attention</em></article>
+    <article><small>JUMLA YA MAUZO</small><h2 id="sales">Inapakia...</h2><em>TSh · Sales summary</em></article>
+    <article><small>JUMLA YA MANUNUZI</small><h2 id="purchases">Inapakia...</h2><em>TSh · Purchases</em></article>
+    <article><small>FAIDA</small><h2 id="profit">Inapakia...</h2><em>TSh · Estimated</em></article>
+    <article><small>WATEJA</small><h2 id="customers">Inapakia...</h2><em>Registered customers</em></article>
+    <article><small>DAWA ZINAZOHITAJI STOCK</small><h2 class="red" id="low">Inapakia...</h2><em>Require attention</em></article>
   </div>
 
   <div class="grid">
     <section class="panel wide">
-      <h3>Sales Overview <span>This Month</span></h3>
+      <h3>Mwenendo wa Mauzo <span>Mwezi huu</span></h3>
       <div class="items" id="salesOverview">
         <p>Inasubiri taarifa halisi za mauzo kutoka Supabase.</p>
       </div>
     </section>
 
     <section class="panel">
-      <h3>Top Selling Medicines</h3>
+      <h3>Dawa Zinazoongoza kwa Mauzo</h3>
       <div class="items medicine-list">
         <p>Inasubiri taarifa halisi za mauzo.</p>
       </div>
     </section>
 
     <section class="panel">
-      <h3>Stock Summary</h3>
+      <h3>Muhtasari wa Stock</h3>
       <div class="stock">
         <div class="donut"><b id="stockTotal">Inapakia...</b></div>
         <div class="items">
@@ -91,21 +93,21 @@
     </section>
 
     <section class="panel">
-      <h3>Expiry Alerts</h3>
+      <h3>Tahadhari za Expiry</h3>
       <div class="items alerts">
         <p>Inapakia taarifa za muda wa kuisha kwa dawa.</p>
       </div>
     </section>
 
     <section class="panel">
-      <h3>Recent Transactions</h3>
+      <h3>Miamala ya Karibuni</h3>
       <div class="items transactions">
         <p>Inasubiri miamala halisi.</p>
       </div>
     </section>
 
     <section class="panel">
-      <h3>Branch Performance</h3>
+      <h3>Ufanisi wa Matawi</h3>
       <div class="items branch-performance">
         <p>Inasubiri taarifa halisi za matawi.</p>
       </div>
