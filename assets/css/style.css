@@ -139,3 +139,15 @@ header .header-actions #notificationCount {
  .dashboard-page .stats article{border-radius:10px}
  .dashboard-page .dashboard-status{font-size:10px}
 }
+
+
+/* Daily sales trend — live data from Supabase */
+.dashboard-page #salesOverview{display:block}
+.sales-trend-summary{display:flex;align-items:baseline;gap:10px;margin:2px 0 14px}
+.sales-trend-summary strong{font-size:21px;color:#087f70}
+.sales-trend-summary span{font-size:10px;color:#78899b}
+.sales-trend-chart{height:155px;display:flex;align-items:stretch;gap:4px;padding:8px 4px 0;border-bottom:1px solid #dfe8ef;background:repeating-linear-gradient(to bottom,#fff 0,#fff 37px,#edf2f6 38px);overflow:hidden}
+.sales-day{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+.sales-day i{display:block;width:100%;max-width:18px;min-height:0;background:linear-gradient(180deg,#4bd2b0,#168f86);border-radius:4px 4px 0 0}
+.sales-day small{height:12px;font-size:8px;color:#8392a3;line-height:12px}
+.sales-trend-foot{display:flex;justify-content:space-between;margin-top:7px;color:#8493a3;font-size:9px}
