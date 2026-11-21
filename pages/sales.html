@@ -70,8 +70,8 @@ th{color:var(--muted);background:#f8faff}
 </nav>
 
 <main>
- <h1>Sales & Point of Sale</h1>
- <div class="sub">Uza dawa, pokea malipo, hifadhi mauzo na chapisha risiti.</div>
+ <h1>🛒 KUUZA DAWA (POS)</h1>
+ <div class="sub">Hatua 1: Tafuta dawa → Hatua 2: Ongeza kwenye kikapu → Hatua 3: Weka malipo → Hatua 4: Kamilisha na chapisha risiti.</div>
  <div id="notice" class="notice"></div>
 
  <section class="panel" style="margin-top:18px">
@@ -92,7 +92,7 @@ th{color:var(--muted);background:#f8faff}
 
  <div class="grid">
   <section class="panel">
-   <h3>Chagua dawa</h3>
+   <h3>1. TAFUTA NA CHAGUA DAWA</h3>
    <div class="toolbar">
     <input id="search" placeholder="Tafuta jina, barcode au batch...">
     <button class="secondary" id="refresh">↻ Refresh</button>
@@ -101,7 +101,7 @@ th{color:var(--muted);background:#f8faff}
   </section>
 
   <section class="panel">
-   <h3>Kikapu cha mauzo</h3>
+   <h3>2. KIKAPU CHA MAUZO NA MALIPO</h3>
    <div class="tablewrap">
     <table>
      <thead><tr><th>Dawa</th><th>Qty</th><th>Bei</th><th></th></tr></thead>
@@ -120,14 +120,14 @@ th{color:var(--muted);background:#f8faff}
    <input id="paid" type="number" min="0" value="0">
    <div class="totalrow"><span>Salio</span><strong id="balance">TSh 0</strong></div>
    <div class="actions">
-    <button class="success" id="complete">✓ Kamilisha Mauzo</button>
+    <button class="success" id="complete">✓ MALIZA MAUZO NA PRINT RISITI</button>
     <button class="secondary" id="clear">Futa Kikapu</button>
    </div>
   </section>
  </div>
 
  <section class="panel" style="margin-top:20px">
-  <h3>Mauzo yaliyofanyika</h3>
+  <h3>3. HISTORIA YA MAUZO</h3>
   <div class="tablewrap">
    <table>
     <thead><tr><th>Namba</th><th>Tarehe</th><th>Jumla</th><th>Malipo</th><th>Njia</th><th>Risiti</th><th>Invoice</th></tr></thead>
@@ -328,12 +328,15 @@ async function completeSale(){
  finally{btn.disabled=false;btn.textContent='✓ Kamilisha Mauzo'}
 }
 
-function printReceipt(sale){
+async function printReceipt(sale){
  const branch=branches.find(b=>b.id===currentBranch());
  const customer=customers.find(c=>c.id===$('customer').value);
  const width=Number(companyInfo.receipt_paper_mm)===58?'58mm':'80mm';
- const rows=cart.length?cart:[];
- const receiptItems=sale.items||[];
+ const {data:receiptItems,error:receiptItemsError}=await supabase.from('sale_items')
+  .select('quantity,unit_price,line_total,medicine_id,batch_id')
+  .eq('sale_id',sale.sale_id);
+ if(receiptItemsError){notice('Mauzo yamehifadhiwa lakini bidhaa za risiti hazikupatikana: '+receiptItemsError.message,'error');return}
+ const medicineNames=new Map(medicines.map(m=>[m.id,m.name]));
  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${escapeHtml(sale.sale_number)}</title>
  <style>@page{size:${width} auto;margin:3mm}body{font:12px Arial;width:100%;margin:0;color:#000}h2,p{text-align:center;margin:4px 0}.line{border-top:1px dashed #000;margin:8px 0}.row{display:flex;justify-content:space-between;gap:5px;margin:5px 0}.center{text-align:center}.small{font-size:10px}</style></head><body>
  <h2>${escapeHtml(companyInfo.name||'HAGAI PHARMACY')}</h2>
@@ -342,6 +345,8 @@ function printReceipt(sale){
  <p>${escapeHtml(sale.sale_number)}</p><p>${new Date().toLocaleString('sw-TZ')}</p>
  <p>Tawi: ${escapeHtml(branch?.name||'')}</p>
  <p>Mteja: ${escapeHtml(customer?.full_name||'Mteja wa kawaida')}</p>
+ <div class="line"></div>
+ ${(receiptItems||[]).map(item=>`<div class="row"><span>${escapeHtml(medicineNames.get(item.medicine_id)||'Dawa')} × ${Number(item.quantity)}</span><b>${money(item.line_total)}</b></div>`).join('')}
  <div class="line"></div>
  <div class="row"><b>Jumla</b><b>${money(sale.total)}</b></div>
  <div class="row"><span>Subtotal</span><span>${money(sale.subtotal)}</span></div>
