@@ -78,6 +78,30 @@ function searchData() {
 window.toggleMenu = toggleMenu;
 window.searchData = searchData;
 
+// Logout salama: futa session ya Supabase kabla ya kurudi login.
+const logoutButton = document.getElementById('logoutBtn');
+if (logoutButton) {
+  logoutButton.addEventListener('click', async () => {
+    const confirmed = window.confirm('Una uhakika unataka kutoka kwenye akaunti?');
+    if (!confirmed) return;
+
+    logoutButton.disabled = true;
+    logoutButton.textContent = 'Inatoka...';
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      localStorage.removeItem('hagai_saved_email');
+      window.location.replace('login.html');
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('Imeshindikana kutoka: ' + error.message);
+      logoutButton.disabled = false;
+      logoutButton.textContent = '↪ LOG OUT';
+    }
+  });
+}
+
 async function loadDashboard() {
   try {
     const access = window.hagaiMembership;
