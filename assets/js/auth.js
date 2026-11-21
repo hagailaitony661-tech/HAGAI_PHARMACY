@@ -71,6 +71,17 @@ if (loginForm) {
         );
 
         if (setupError) throw setupError;
+      } else if (!membership && metadata.registration_type === 'sub_branch') {
+        const invitationToken = metadata.invitation_token;
+        const invitationCode = metadata.invitation_code;
+        if (!invitationToken || !invitationCode) {
+          throw new Error('Taarifa za mwaliko hazijakamilika. Fungua Invitation Link tena na tumia Invitation Code uliyopewa.');
+        }
+        const { error: invitationError } = await supabase.rpc('accept_branch_invitation', {
+          p_token: invitationToken,
+          p_code: invitationCode
+        });
+        if (invitationError) throw invitationError;
       }
 
       localStorage.setItem('hagai_saved_email', email);
