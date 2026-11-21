@@ -8,6 +8,17 @@ function show(id, value) {
   if (el) el.textContent = value;
 }
 
+function clearDashboardLoading(value = '—') {
+  ['sales','purchases','profit','customers','low','stockTotal','inStock','lowStock','outOfStock','expiredStock'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.textContent.trim() === 'Inapakia...') el.textContent = value;
+  });
+  const branch = document.getElementById('branch');
+  if (branch && branch.options.length === 1 && branch.options[0].text.includes('Inapakia')) {
+    branch.innerHTML = '<option value="all">Taarifa za matawi hazipatikani</option>';
+  }
+}
+
 function toggleMenu() {
   document.querySelector('.sidebar')?.classList.toggle('show');
 }
@@ -29,7 +40,8 @@ async function loadDashboard() {
     const access = window.hagaiMembership;
 
     if (!access) {
-      show('dashboardMessage', 'Taarifa za akaunti hazijapatikana.');
+      show('dashboardMessage', 'Taarifa za akaunti hazijapatikana. Tafadhali ingia tena.');
+      clearDashboardLoading('—');
       return;
     }
 
@@ -68,6 +80,7 @@ async function loadDashboard() {
   } catch (error) {
     console.error('Dashboard error:', error);
     show('dashboardMessage', 'Imeshindikana kupakia taarifa: ' + error.message);
+    clearDashboardLoading('Haipatikani');
   }
 }
 
@@ -318,6 +331,7 @@ async function refreshDashboard() {
   } catch (error) {
     console.error('Dashboard loading error:', error);
     show('dashboardMessage', 'Hitilafu: ' + error.message);
+    clearDashboardLoading('Haipatikani');
   }
 }
 
@@ -591,16 +605,31 @@ async function initializeNotifications() {
 window.changeBranch = refreshDashboard;
 
 async function waitForAccess() {
-  for (let i = 0; i < 30; i++) {
-    if (window.hagaiMembership) {
-      await loadDashboard();
-      await initializeNotifications();
-      return;
-    }
-    await new Promise(resolve => setTimeout(resolve, 200));
+  // Guard inaweza kuhitaji muda zaidi mtandao ukiwa taratibu; sikiliza event yake.
+  if (!window.hagaiMembership) {
+    await new Promise(resolve => {
+      let finished = false;
+      const done = () => {
+        if (finished) return;
+        finished = true;
+        window.removeEventListener('hagai:access-ready', done);
+        resolve();
+      };
+      window.addEventListener('hagai:access-ready', done, { once: true });
+      if (window.hagaiMembership) done();
+      setTimeout(done, 20000);
+    });
   }
 
-  show('dashboardMessage', 'Imeshindikana kupata taarifa za akaunti. Tafadhali ingia tena.');
+  if (!window.hagaiMembership) {
+    show('dashboardMessage', 'Dashboard haijapata ruhusa za akaunti. Tafadhali ingia tena au jaribu kusasisha ukurasa.');
+    clearDashboardLoading('—');
+    return;
+  }
+
+  show('dashboardMessage', 'Inapakia taarifa za biashara...');
+  await loadDashboard();
+  await initializeNotifications();
 }
 
 waitForAccess();
