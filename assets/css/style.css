@@ -85,3 +85,57 @@ header .header-actions #notificationCount {
 .quick-action>b{margin-left:auto;color:#1769e0;font-size:18px}
 @media(max-width:1100px){.quick-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.quick-actions{grid-template-columns:1fr}.quick-action{padding:13px}}
+
+
+/* HAGAI PHARMACY — professional dashboard theme */
+.dashboard-page{background:#eef3f8;color:#1b2b43}
+.dashboard-page .sidebar{background:linear-gradient(180deg,#10243e 0%,#142f4d 100%);border-right:0;color:#eaf2fb;box-shadow:8px 0 28px #10243e12}
+.dashboard-page .sidebar h2{color:#4bd2b0;letter-spacing:1.2px}
+.dashboard-page .sidebar>small{color:#9eb3c9;letter-spacing:1.4px}
+.dashboard-page nav{gap:5px;margin-top:30px}
+.dashboard-page nav a{color:#c3d0df;border:1px solid transparent;transition:background .2s,color .2s,transform .2s}
+.dashboard-page nav a:hover,.dashboard-page nav a.active{background:#244565;color:#fff;border-color:#355b7d;transform:translateX(2px)}
+.dashboard-page .profile{border-color:#35506b;color:#f2f7fc}
+.dashboard-page .profile small{color:#a9bed1}
+.dashboard-page main{min-height:100vh}
+.dashboard-page header{background:#fff;border-bottom:1px solid #dce5ef;box-shadow:0 3px 15px #203c5808}
+.dashboard-page header input{background:#f5f8fc;border-color:#dce5ef;outline:none}
+.dashboard-page header input:focus{border-color:#27b99a;box-shadow:0 0 0 3px #27b99a20}
+.dashboard-page .content{padding:28px clamp(16px,2.5vw,34px)}
+.dashboard-page .heading{margin-bottom:18px}
+.dashboard-page .heading h1{font-size:27px;letter-spacing:-.7px;color:#142b45}
+.dashboard-page .heading p{font-size:12px;color:#71849a}
+.dashboard-page select{background:#fff;border-color:#d9e3ed;color:#253b55}
+.dashboard-page .dashboard-status{margin:0 0 17px;padding:10px 14px;border:1px solid #cfe8e2;border-left:4px solid #20b996;border-radius:9px;background:#e9f7f3;color:#286b5d;font-size:11px}
+.dashboard-page .quick-action{background:linear-gradient(145deg,#fff,#f7fbff);border-color:#dce6ef;box-shadow:0 5px 16px #1836500b;transition:transform .2s,box-shadow .2s,border-color .2s}
+.dashboard-page .quick-action:hover{transform:translateY(-3px);border-color:#55cbb1;box-shadow:0 10px 22px #18365016}
+.dashboard-page .quick-action .quick-icon{background:#e2f6f1;color:#078b75}
+.dashboard-page .quick-action>b{color:#078b75}
+.dashboard-page .stats{gap:14px}
+.dashboard-page .stats article{position:relative;overflow:hidden;background:#fff;border:1px solid #dfe8f0;border-radius:13px;padding:19px;box-shadow:0 5px 18px #1d38500a}
+.dashboard-page .stats article:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:#22b99a}
+.dashboard-page .stats article:nth-child(2):before{background:#438fe0}
+.dashboard-page .stats article:nth-child(3):before{background:#8c79d9}
+.dashboard-page .stats article:nth-child(4):before{background:#e3a33c}
+.dashboard-page .stats article:nth-child(5):before{background:#e36a68}
+.dashboard-page .stats small{color:#71849a;font-weight:700;letter-spacing:.45px;font-size:9px}
+.dashboard-page .stats h2{font-size:clamp(17px,1.5vw,22px);color:#1b3551}
+.dashboard-page .stats em{color:#078b75}
+.dashboard-page .grid{gap:16px}
+.dashboard-page .panel{background:#fff;border:1px solid #dfe8f0;border-radius:13px;padding:19px;box-shadow:0 5px 18px #1d38500a}
+.dashboard-page .panel h3{color:#1a3550;font-size:13px;padding-bottom:12px;border-bottom:1px solid #edf1f5}
+.dashboard-page .panel h3 span{color:#078b75}
+.dashboard-page .items{gap:14px}
+.dashboard-page .items p{color:#52677d;line-height:1.55}
+.dashboard-page .items b{color:#173b59}
+.dashboard-page .chart{background:repeating-linear-gradient(to bottom,#fff 0,#fff 37px,#eaf0f5 38px)}
+.dashboard-page .bars i{background:linear-gradient(180deg,#48d0b0,#168f86)}
+.dashboard-page .donut:before{background:#fff}
+.dashboard-page footer{color:#8496a8}
+@media(max-width:650px){
+ .dashboard-page .sidebar{background:#10243e}
+ .dashboard-page .content{padding:14px 11px}
+ .dashboard-page .heading h1{font-size:23px}
+ .dashboard-page .stats article{border-radius:10px}
+ .dashboard-page .dashboard-status{font-size:10px}
+}
