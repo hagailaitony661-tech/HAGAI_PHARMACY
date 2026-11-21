@@ -33,6 +33,18 @@ th{color:#77849a;background:#f8faff}
 .empty{text-align:center;color:#77849a;padding:30px}
 @media(max-width:650px){main{padding:14px}header{padding:14px}}
 </style>
+<style>
+.invite-panel{margin:20px 0;background:#fff;border:1px solid #dce7f5;border-radius:12px;padding:20px}
+.invite-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.invite-field label{display:block;font-size:12px;font-weight:bold;color:#526078;margin:12px 0 6px}
+.invite-field input,.invite-field select{width:100%;padding:12px;border:1px solid #dce3ee;border-radius:8px;font:inherit;background:#fff}
+.invite-submit{margin-top:16px;background:#1769e0;color:#fff}
+.invite-result{display:none;margin-top:16px;padding:14px;background:#eef8f2;border:1px solid #cce9d6;border-radius:9px;overflow-wrap:anywhere}
+.invite-result.show{display:block}
+.invite-result code{display:block;padding:9px;background:#fff;border-radius:6px;margin:7px 0;white-space:normal}
+.invite-result button{margin:5px 6px 0 0;background:#eaf1ff;color:#1769e0}
+@media(max-width:650px){.invite-grid{grid-template-columns:1fr}main{padding:14px}}
+</style>
 </head>
 <body>
 <header>
@@ -45,6 +57,21 @@ th{color:#77849a;background:#f8faff}
   <div class="sub">Watumiaji, roles na maeneo ya kazi ya kampuni</div>
  </div>
  <div id="notice" class="notice"></div>
+
+ <section class="invite-panel">
+  <h2>＋ Alika Mtumiaji kwenye Ofisi/Tawi</h2>
+  <p class="sub">Tengeneza Invitation Link na Code. Mtumiaji atatumia vyote viwili kujisajili kwa email uliyomualika.</p>
+  <form id="inviteForm">
+   <div class="invite-grid">
+    <div class="invite-field"><label for="inviteEmail">Email ya mtu unayemualika *</label><input id="inviteEmail" type="email" required placeholder="mfano@gmail.com"></div>
+    <div class="invite-field"><label for="inviteBranch">Ofisi/Tawi analoenda kufanya kazi *</label><select id="inviteBranch" required></select></div>
+    <div class="invite-field"><label for="inviteRole">Cheo / Ruhusa *</label><select id="inviteRole" required><option value="cashier">Cashier — Mauzo</option><option value="pharmacist">Pharmacist — Dawa na mauzo</option><option value="branch_manager">Branch Manager — Meneja wa tawi</option><option value="accountant">Accountant — Hesabu</option><option value="viewer">Viewer — Kuangalia tu</option></select></div>
+    <div class="invite-field"><label for="inviteExpiry">Muda wa mwaliko</label><select id="inviteExpiry"><option value="24">Saa 24</option><option value="48" selected>Saa 48</option><option value="72">Siku 3</option><option value="168">Siku 7</option></select></div>
+   </div>
+   <button class="invite-submit" id="inviteSubmit" type="submit">TENGENEZA INVITATION</button>
+  </form>
+  <div class="invite-result" id="inviteResult" aria-live="polite"></div>
+ </section>
 
  <section class="card">
   <small>JUMLA YA WATUMIAJI WANAOONEKANA</small>
@@ -160,6 +187,7 @@ async function load(){
  if(be)throw be;
  branchMap={};
  (branchData||[]).forEach(b=>branchMap[b.id]=b.name);
+ $('inviteBranch').innerHTML=(branchData||[]).map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join('');
  const {data,error}=await supabase.from('company_members')
   .select('user_id,role,membership_scope,branch_id,created_at')
   .eq('company_id',member.company_id)
@@ -168,6 +196,28 @@ async function load(){
  members=data||[];
  render();
 }
+$('inviteForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const button=$('inviteSubmit'),result=$('inviteResult');
+ button.disabled=true;button.textContent='Inatengeneza...';
+ result.className='invite-result';result.textContent='';
+ try{
+  const {data,error}=await supabase.rpc('create_branch_invitation',{
+   p_branch_id:$('inviteBranch').value,
+   p_email:$('inviteEmail').value.trim().toLowerCase(),
+   p_role:$('inviteRole').value,
+   p_expires_hours:Number($('inviteExpiry').value)
+  });
+  if(error)throw error;
+  const link=new URL('../signup.html?invite='+encodeURIComponent(data.token),window.location.href).href;
+  result.innerHTML='<strong>Invitation imetengenezwa!</strong><p>Mtumie mtu huyu link na code. Code itaonekana hapa mara hii tu.</p><p><b>Invitation Link</b></p><code id="createdInviteLink"></code><p><b>Invitation Code</b></p><code id="createdInviteCode"></code><p><b>Inaisha:</b> '+esc(new Date(data.expires_at).toLocaleString())+'</p><button type="button" id="copyInviteLink">Nakili Link</button><button type="button" id="copyInviteCode">Nakili Code</button>';
+  $('createdInviteLink').textContent=link;$('createdInviteCode').textContent=data.code;
+  $('copyInviteLink').addEventListener('click',async()=>{await navigator.clipboard.writeText(link);notice('Invitation Link imenakiliwa.');});
+  $('copyInviteCode').addEventListener('click',async()=>{await navigator.clipboard.writeText(data.code);notice('Invitation Code imenakiliwa.');});
+  result.className='invite-result show';$('inviteForm').reset();
+ }catch(error){notice('Imeshindikana kutengeneza invitation: '+error.message,'error');}
+ finally{button.disabled=false;button.textContent='TENGENEZA INVITATION';}
+});
 $('search').addEventListener('input',render);
 $('roleFilter').addEventListener('change',render);
 $('refreshBtn').addEventListener('click',()=>load().then(()=>notice('Users wame-refresh.')).catch(e=>notice(e.message,'error')));
