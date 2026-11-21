@@ -71,7 +71,7 @@ th{color:var(--muted);background:#f8faff}
 
 <main>
  <h1>🛒 KUUZA DAWA (POS)</h1>
- <div class="sub">Hatua 1: Tafuta dawa → Hatua 2: Ongeza kwenye kikapu → Hatua 3: Weka malipo → Hatua 4: Kamilisha na chapisha risiti.</div>
+ <div class="sub">Andika jina la dawa, weka kiasi unachouza, ongeza kwenye mauzo kisha chapisha risiti ya thermal.</div>
  <div id="notice" class="notice"></div>
 
  <section class="panel" style="margin-top:18px">
@@ -92,16 +92,16 @@ th{color:var(--muted);background:#f8faff}
 
  <div class="grid">
   <section class="panel">
-   <h3>1. TAFUTA NA CHAGUA DAWA</h3>
+   <h3>1. ANDIKA JINA LA DAWA NA KIASI</h3>
    <div class="toolbar">
-    <input id="search" placeholder="Tafuta jina, barcode au batch...">
+    <input id="search" placeholder="Andika jina la dawa au barcode..." autocomplete="off">
     <button class="secondary" id="refresh">↻ Refresh</button>
    </div>
    <div id="products"><div class="empty">Inapakia dawa...</div></div>
   </section>
 
   <section class="panel">
-   <h3>2. KIKAPU CHA MAUZO NA MALIPO</h3>
+   <h3>2. MUHTASARI WA MAUZO NA RISITI</h3>
    <div class="tablewrap">
     <table>
      <thead><tr><th>Dawa</th><th>Qty</th><th>Bei</th><th></th></tr></thead>
@@ -147,7 +147,7 @@ import { supabase } from '../assets/js/supabase.js';
 const $ = id => document.getElementById(id);
 const money = n => 'TSh ' + Number(n || 0).toLocaleString('en-US',{maximumFractionDigits:2});
 let user, access, branches=[], medicines=[], batches=[], customers=[], cart=[];
-let companyInfo={}, lastSale=null;
+let companyInfo={}, lastSale=null, paidEdited=false;
 
 function notice(message,type='success'){
  const el=$('notice');
@@ -243,22 +243,28 @@ function renderProducts(){
    <small>${escapeHtml(m.strength||'')} ${m.unit?'· '+escapeHtml(m.unit):''} · Batch ${escapeHtml(b.batch_number)}</small>
    <small>Expiry: ${escapeHtml(b.expiry_date)} · Stock: ${Number(b.quantity_available)}</small>
    <strong>${money(b.selling_price)}</strong></div>
-   <button class="primary" data-add="${b.id}">＋ Ongeza</button>
+   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input aria-label="Kiasi cha ${escapeHtml(m.name)}" data-product-qty="${b.id}" type="number" min="0.001" step="0.001" max="${Number(b.quantity_available)}" value="1" style="width:82px;padding:9px"><button class="primary" data-add="${b.id}">＋ Ongeza</button></div>
   </div>`;
  }).join('');
- $('products').querySelectorAll('[data-add]').forEach(btn=>btn.addEventListener('click',()=>addToCart(btn.dataset.add)));
+ $('products').querySelectorAll('[data-add]').forEach(btn=>btn.addEventListener('click',()=>{
+  const qty=$('products').querySelector('[data-product-qty="'+btn.dataset.add+'"]');
+  addToCart(btn.dataset.add,qty?.value||1);
+ }));
 }
 
-function addToCart(batchId){
+function addToCart(batchId,quantity=1){
  const b=getBatch(batchId);
  if(!b)return;
  const m=getMedicine(b.medicine_id);
+ const amount=Number(quantity);
+ if(!Number.isFinite(amount)||amount<=0){notice('Weka kiasi sahihi cha dawa.','error');return}
  const existing=cart.find(x=>x.batch_id===batchId);
  if(existing){
-  if(existing.quantity+1>Number(b.quantity_available)){notice('Stock haitoshi.','error');return}
-  existing.quantity++;
+  if(existing.quantity+amount>Number(b.quantity_available)){notice('Stock haitoshi kwa kiasi ulichoandika.','error');return}
+  existing.quantity+=amount;
  }else{
-  cart.push({batch_id:b.id,medicine_id:m.id,name:m.name,batch_number:b.batch_number,price:Number(b.selling_price),quantity:1,max:Number(b.quantity_available)});
+  if(amount>Number(b.quantity_available)){notice('Stock haitoshi kwa kiasi ulichoandika.','error');return}
+  cart.push({batch_id:b.id,medicine_id:m.id,name:m.name,batch_number:b.batch_number,price:Number(b.selling_price),quantity:amount,max:Number(b.quantity_available)});
  }
  renderCart();
 }
@@ -287,7 +293,8 @@ function calculate(){
  const discount=Math.max(0,Number($('discount').value)||0);
  const tax=Math.max(0,Number($('tax').value)||0);
  const total=Math.max(0,subtotal-discount+tax);
- const paid=Math.max(0,Number($('paid').value)||0);
+ const paid=paidEdited?Math.max(0,Number($('paid').value)||0):($('payment').value==='credit'?0:total);
+ if(!paidEdited)$('paid').value=String(paid);
  $('subtotal').textContent=money(subtotal);
  $('total').textContent=money(total);
  $('balance').textContent=money(total-paid);
@@ -321,7 +328,7 @@ async function completeSale(){
   lastSale=data;
   notice('Mauzo yamehifadhiwa! Namba: '+data.sale_number,'success');
   cart=[];
-  $('discount').value=0;$('tax').value=0;$('paid').value=0;
+  $('discount').value=0;$('tax').value=0;$('paid').value=0;paidEdited=false;
   renderCart();
   await loadProducts();
   await loadSales();
@@ -347,7 +354,7 @@ async function printReceipt(sale,receiptWindow=null){
  <style>
  *{box-sizing:border-box}@page{size:${paper}mm auto;margin:3mm}body{margin:0;background:#fff;color:#111;font:11px/1.4 Arial,sans-serif}
  .receipt{width:100%;max-width:${paper-6}mm;margin:0 auto;padding:2mm 1mm}.brand{text-align:center;padding:3px 0 8px;border-bottom:1px dashed #333}
- .logo{display:block;max-width:34mm;max-height:17mm;object-fit:contain;margin:0 auto 5px;filter:grayscale(1)}
+ .logo{display:block;max-width:34mm;max-height:17mm;object-fit:contain;margin:0 auto 5px;filter:grayscale(1)}.logo-fallback{width:13mm;height:13mm;border:1.5px solid #111;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:900;margin:0 auto 5px}
  .brand h1{font-size:16px;line-height:1.15;margin:3px 0;font-weight:800;text-transform:uppercase;overflow-wrap:anywhere}.brand p{margin:2px 0;font-size:10px}
  .ribbon{text-align:center;font-size:13px;font-weight:800;letter-spacing:1.5px;margin:9px 0 5px}
  .meta{font-size:10px;margin:7px 0}.meta div{display:flex;justify-content:space-between;gap:5px;margin:2px 0}
@@ -460,7 +467,8 @@ $('refresh').addEventListener('click',async()=>{try{await loadProducts();notice(
 $('branch').addEventListener('change',async()=>{cart=[];renderCart();try{await loadProducts();await loadSales()}catch(e){notice(e.message,'error')}});
 $('discount').addEventListener('input',calculate);
 $('tax').addEventListener('input',calculate);
-$('paid').addEventListener('input',calculate);
+$('paid').addEventListener('input',()=>{paidEdited=true;calculate()});
+$('payment').addEventListener('change',()=>{paidEdited=false;calculate()});
 $('complete').addEventListener('click',completeSale);
 $('clear').addEventListener('click',()=>{cart=[];renderCart()});
 
