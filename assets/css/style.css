@@ -237,3 +237,36 @@ header .header-actions #notificationCount {
   .dashboard-page .sidebar .logout-btn::first-letter{font-size:20px}
   .dashboard-page .sidebar .profile{display:none}
 }
+
+
+/* Mobile: keep logout visibly pinned at the bottom of the narrow sidebar */
+@media(max-width:650px){
+  .dashboard-page .sidebar nav{padding-bottom:62px}
+  .dashboard-page .sidebar .logout-btn{
+    position:fixed;
+    left:5px;
+    bottom:10px;
+    z-index:30;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:55px;
+    height:44px;
+    min-height:44px;
+    margin:0;
+    padding:0;
+    border:1px solid #e47780;
+    border-radius:10px;
+    background:#a52e3d;
+    color:transparent;
+    font-size:0;
+    overflow:hidden;
+  }
+  .dashboard-page .sidebar .logout-btn::before{
+    content:"↪";
+    color:#fff;
+    font-size:23px;
+    line-height:1;
+  }
+  .dashboard-page .sidebar .logout-btn:hover{background:#bd3546}
+}
