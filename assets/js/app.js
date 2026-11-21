@@ -629,7 +629,8 @@ async function waitForAccess() {
 
   show('dashboardMessage', 'Inapakia taarifa za biashara...');
   await loadDashboard();
-  await initializeNotifications();
+  // Notifications zipakie nyuma; zisicheleweshe Dashboard kuonekana.
+  initializeNotifications().catch(error => console.error('Notifications background error:', error));
 }
 
 waitForAccess();
