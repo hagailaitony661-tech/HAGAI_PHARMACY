@@ -270,3 +270,37 @@ header .header-actions #notificationCount {
   }
   .dashboard-page .sidebar .logout-btn:hover{background:#bd3546}
 }
+
+
+/* Final mobile fix: anchor logout inside sidebar (not fixed outside its clipped area) */
+@media(max-width:650px){
+  .dashboard-page .sidebar{position:fixed;overflow:hidden}
+  .dashboard-page .sidebar .logout-btn{
+    position:absolute !important;
+    left:5px !important;
+    right:5px !important;
+    bottom:10px !important;
+    z-index:40 !important;
+    display:flex !important;
+    width:55px !important;
+    height:44px !important;
+    min-height:44px !important;
+    margin:0 !important;
+    padding:0 !important;
+    align-items:center !important;
+    justify-content:center !important;
+    background:#a52e3d !important;
+    border:1px solid #e47780 !important;
+    border-radius:10px !important;
+    color:transparent !important;
+    font-size:0 !important;
+  }
+  .dashboard-page .sidebar .logout-btn::before{
+    content:"↪";
+    display:block;
+    color:#fff;
+    font-size:23px;
+    line-height:1;
+  }
+  .dashboard-page .sidebar nav{padding-bottom:62px}
+}
