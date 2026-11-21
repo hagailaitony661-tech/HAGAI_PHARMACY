@@ -46,9 +46,12 @@ th{background:#f7f9fc}
 <input id="search" placeholder="Tafuta sale number au invoice number...">
 <input id="fromDate" type="date">
 <input id="toDate" type="date">
+<label style="display:flex;align-items:center;gap:8px;font-weight:bold;font-size:12px">THERMAL
+<select id="receiptPaper" aria-label="Upana wa karatasi ya thermal"><option value="58">58mm</option><option value="80">80mm</option></select>
+</label>
 <button id="reload">PAKIA TENA</button>
 </div>
-<p class="muted">Chagua mauzo kisha chapisha risiti ya thermal au tengeneza invoice ya A4.</p>
+<p class="muted">Chagua 58mm au 80mm kulingana na printer yako. Kisha bonyeza PRINT THERMAL kwenye mauzo husika. Invoice ya A4 inapatikana pembeni.</p>
 <div class="table-wrap">
 <table>
 <thead><tr>
@@ -92,7 +95,7 @@ async function init(){
   supabase.from('customers').select('id,full_name,phone,email,address').eq('company_id',companyId)
  ]);
  if(co.error){notice(co.error.message,true);return}
- company=co.data;branches=br.data||[];customers=cu.data||[];
+ company=co.data;branches=br.data||[];customers=cu.data||[];$('receiptPaper').value=String(company.receipt_paper_mm||80);
  await load();
 }
 async function load(){
@@ -129,7 +132,7 @@ function render(){
   <td>${esc(s.sale_number)}</td><td>${esc(inv?.invoice_number||'Haijatengenezwa')}</td>
   <td>${money(s.total)}</td><td>${money(s.amount_paid)}</td>
   <td>${money(Number(s.total)-Number(s.amount_paid))}</td>
-  <td><button class="secondary" data-receipt="${s.id}">Risiti</button>
+  <td><button class="secondary" data-receipt="${s.id}">PRINT THERMAL</button>
   <button data-invoice="${s.id}">${inv?'Invoice':'Tengeneza Invoice'}</button></td>
   </tr>`;
  }).join('');
@@ -195,7 +198,7 @@ async function printDocument(saleId,type){
   const customer=customers.find(x=>x.id===sale.customer_id)||{};
   let invoice=null;
   if(type==='invoice')invoice=await ensureInvoice(sale);
-  const paper=Number(company.receipt_paper_mm||80);
+  const paper=Number($('receiptPaper').value||company.receipt_paper_mm||80);
   const isReceipt=type==='receipt';
   const title=isReceipt?'RISITI':'INVOICE';
   const number=isReceipt?sale.sale_number:invoice.invoice_number;
