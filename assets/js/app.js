@@ -19,6 +19,49 @@ function clearDashboardLoading(value = '—') {
   }
 }
 
+function renderSalesTrend(sales) {
+  const container = document.getElementById('salesOverview');
+  if (!container) return;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daily = Array(daysInMonth).fill(0);
+
+  (sales || []).forEach(sale => {
+    if (!sale.sale_date) return;
+    const date = new Date(sale.sale_date);
+    if (date.getFullYear() === year && date.getMonth() === month) {
+      daily[date.getDate() - 1] += Number(sale.total || 0);
+    }
+  });
+
+  const max = Math.max(...daily, 0);
+  const total = daily.reduce((sum, amount) => sum + amount, 0);
+  const moneyShort = value => 'TSh ' + Number(value || 0).toLocaleString('en-US');
+  if (!total) {
+    container.innerHTML = '<p>Hakuna mauzo yaliyokamilika mwezi huu. Grafu itajaa mauzo yatakaporekodiwa.</p>';
+    return;
+  }
+
+  const bars = daily.map((amount, index) => {
+    const height = amount > 0 ? Math.max(4, (amount / max) * 100) : 0;
+    const day = index + 1;
+    return '<div class="sales-day" title="Tarehe ' + day + ': ' + moneyShort(amount) + '">' +
+      '<i style="height:' + height + '%"></i>' +
+      (day === 1 || day % 5 === 0 || day === daysInMonth ? '<small>' + day + '</small>' : '<small></small>') +
+      '</div>';
+  }).join('');
+
+  container.innerHTML =
+    '<div class="sales-trend-summary"><strong>' + moneyShort(total) +
+    '</strong><span>Jumla ya mauzo mwezi huu</span></div>' +
+    '<div class="sales-trend-chart" role="img" aria-label="Grafu ya mauzo ya kila siku mwezi huu">' +
+    bars + '</div>' +
+    '<div class="sales-trend-foot"><span>Siku 1</span><span>Siku ' + daysInMonth + '</span></div>';
+}
+
 function toggleMenu() {
   document.querySelector('.sidebar')?.classList.toggle('show');
 }
@@ -142,6 +185,7 @@ async function refreshDashboard() {
     if (medicinesResult.error) throw medicinesResult.error;
 
     const sales = salesResult.data || [];
+    renderSalesTrend(sales);
     const purchases = purchasesResult.data || [];
     const batches = batchesResult.data || [];
     const medicines = medicinesResult.data || [];
