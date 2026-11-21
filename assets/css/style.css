@@ -151,3 +151,9 @@ header .header-actions #notificationCount {
 .sales-day i{display:block;width:100%;max-width:18px;min-height:0;background:linear-gradient(180deg,#4bd2b0,#168f86);border-radius:4px 4px 0 0}
 .sales-day small{height:12px;font-size:8px;color:#8392a3;line-height:12px}
 .sales-trend-foot{display:flex;justify-content:space-between;margin-top:7px;color:#8493a3;font-size:9px}
+
+
+/* Logout control */
+.dashboard-page .logout-btn{display:block;width:calc(100% - 24px);margin:14px 12px 12px;padding:12px 14px;text-align:left;border:1px solid #46617c;border-radius:9px;background:#203d5b;color:#fff;font-weight:700;cursor:pointer}
+.dashboard-page .logout-btn:hover{background:#a52a36;border-color:#c64b55}
+.dashboard-page .logout-btn:disabled{opacity:.65;cursor:wait}
