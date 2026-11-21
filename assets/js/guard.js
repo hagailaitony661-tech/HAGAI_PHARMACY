@@ -51,12 +51,14 @@ async function protectDashboard() {
     };
 
     window.hagaiMembership = access;
+    window.dispatchEvent(new Event('hagai:access-ready'));
     console.log('HAGAI PHARMACY ACCESS:', access);
 
     return access;
 
   } catch (error) {
     console.error('Dashboard protection error:', error);
+    window.dispatchEvent(new Event('hagai:access-ready'));
     alert('Hitilafu ya ulinzi: ' + error.message);
     return null;
   }
