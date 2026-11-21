@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Purchases | HAGAI PHARMACY</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f7fc;font-family:Arial,sans-serif;color:#17243b}
+header{background:white;padding:18px 25px;border-bottom:1px solid #e5eaf2;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:20px;font-weight:bold;color:#1769e0}
+a{color:#1769e0;text-decoration:none}
+main{max-width:1400px;margin:auto;padding:24px}
+.top,.toolbar,.actions{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+h1{font-size:27px;margin:0 0 7px}
+.sub,small{color:#77849a}
+button{border:0;border-radius:8px;padding:11px 16px;cursor:pointer;font-weight:bold}
+button:disabled{opacity:.6;cursor:not-allowed}
+.primary{background:#1769e0;color:white}
+.secondary{background:#eaf1ff;color:#1769e0}
+.danger{background:#ffe9e9;color:#bd2525}
+input,select,textarea{padding:11px;border:1px solid #dce3ee;border-radius:8px;font:inherit;width:100%;min-width:0;background:white}
+.panel,.card{background:white;border:1px solid #e5eaf2;border-radius:12px;padding:19px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:22px 0}
+.number{font-size:25px;font-weight:bold;margin-top:9px}
+.notice{display:none;padding:12px;margin:15px 0;border-radius:8px;font-size:13px}
+.notice.show{display:block}
+.error{background:#ffe9e9;color:#a21e1e}
+.success{background:#e8f8ef;color:#176b3b}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:12px;font-weight:bold;color:#526078}
+.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:850px}
+th,td{text-align:left;padding:12px 9px;border-bottom:1px solid #e5eaf2;font-size:13px}
+th{background:#f8faff;color:#77849a}
+.item-table{min-width:1000px}
+.item-table input,.item-table select{min-width:105px;padding:9px}
+.item-table .medicine-select{min-width:210px}
+.totalbox{margin:18px 0 0 auto;max-width:360px}
+.totalrow{display:flex;justify-content:space-between;padding:7px 0}
+.grand{font-size:19px;font-weight:bold;border-top:1px solid #e5eaf2;padding-top:12px}
+.empty{text-align:center;color:#77849a;padding:28px}
+.status{padding:5px 9px;border-radius:20px;background:#e8f8ef;color:#16834b;font-size:11px}
+.modal{display:none;position:fixed;inset:0;background:#101b2b99;z-index:5;align-items:center;justify-content:center;padding:15px}
+.modal.show{display:flex}
+.dialog{background:white;width:min(1100px,100%);max-height:95vh;overflow:auto;border-radius:14px;padding:22px}
+.formbuttons{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+@media(max-width:750px){main{padding:13px}.cards{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr 1fr}header{padding:14px}}
+@media(max-width:480px){.formgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">✚ HAGAI PHARMACY</div>
+ <a href="../index.html">← Dashboard</a>
+</header>
+
+<main>
+ <div class="top">
+  <div>
+   <h1>Purchases Management</h1>
+   <div class="sub">Manunuzi, kupokea dawa, batches na kuongeza stock</div>
+  </div>
+  <button class="primary" id="newPurchase">＋ Pokea Manunuzi</button>
+ </div>
+
+ <div id="notice" class="notice"></div>
+
+ <section class="cards">
+  <div class="card"><small>JUMLA YA MANUNUZI</small><div class="number" id="purchaseCount">0</div></div>
+  <div class="card"><small>THAMANI YA MANUNUZI</small><div class="number" id="purchaseValue">TZS 0</div></div>
+  <div class="card"><small>DENI LA WASAMBAZAJI</small><div class="number" id="purchaseBalance">TZS 0</div></div>
+ </section>
+
+ <section class="panel">
+  <div class="toolbar">
+   <input id="search" placeholder="Tafuta purchase number..." style="max-width:350px">
+   <button class="secondary" id="refresh">↻ Refresh</button>
+  </div>
+  <div class="tablewrap">
+   <table>
+    <thead><tr><th>PURCHASE NO.</th><th>TAREHE</th><th>SUPPLIER</th><th>BRANCH</th><th>JUMLA</th><th>IMELIPWA</th><th>SALIO</th><th>HALI</th></tr></thead>
+    <tbody id="purchaseRows"></tbody>
+   </table>
+   <div class="empty" id="purchaseEmpty">Inapakia manunuzi...</div>
+  </div>
+ </section>
+</main>
+
+<div class="modal" id="modal">
+ <div class="dialog">
+  <div class="top">
+   <div>
+    <h2 style="margin:0">Pokea Manunuzi Mapya</h2>
+    <p class="sub">Bidhaa zitapokelewa na stock itaongezeka baada ya kuhifadhi.</p>
+   </div>
+   <button class="secondary" id="close">✕</button>
+  </div>
+
+  <form id="purchaseForm">
+   <div class="formgrid">
+    <div class="field"><label>Tawi *</label><select id="branch" required></select></div>
+    <div class="field"><label>Supplier</label><select id="supplier"><option value="">Supplier wa kawaida / Hakuna</option></select></div>
+    <div class="field"><label>Malipo yaliyofanyika (TZS)</label><input id="paid" type="number" min="0" step="0.01" value="0"></div>
+    <div class="field"><label>Discount (TZS)</label><input id="discount" type="number" min="0" step="0.01" value="0"></div>
+    <div class="field"><label>Tax (TZS)</label><input id="tax" type="number" min="0" step="0.01" value="0"></div>
+    <div class="field"><label>Maelezo</label><input id="notes" maxlength="500" placeholder="Maelezo ya manunuzi"></div>
+   </div>
+
+   <div class="top" style="margin:20px 0 12px">
+    <h3 style="margin:0">Bidhaa Zilizopokelewa</h3>
+    <button type="button" class="secondary" id="addItem">＋ Ongeza Bidhaa</button>
+   </div>
+
+   <div class="tablewrap">
+    <table class="item-table">
+     <thead><tr><th>DAWA</th><th>BATCH NO.</th><th>EXPIRY</th><th>QTY</th><th>BUY PRICE</th><th>SELL PRICE</th><th>JUMLA</th><th></th></tr></thead>
+     <tbody id="itemRows"></tbody>
+    </table>
+   </div>
+
+   <div class="totalbox">
+    <div class="totalrow"><span>Subtotal</span><strong id="subtotal">TZS 0</strong></div>
+    <div class="totalrow"><span>Discount</span><strong id="discountView">TZS 0</strong></div>
+    <div class="totalrow"><span>Tax</span><strong id="taxView">TZS 0</strong></div>
+    <div class="totalrow grand"><span>JUMLA</span><strong id="grandTotal">TZS 0</strong></div>
+    <div class="totalrow"><span>Salio</span><strong id="balance">TZS 0</strong></div>
+   </div>
+
+   <div class="formbuttons">
+    <button type="button" class="secondary" id="cancel">Ghairi</button>
+    <button type="submit" class="primary" id="save">Hifadhi na Pokea Stock</button>
+   </div>
+  </form>
+ </div>
+</div>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import {supabase} from '../assets/js/supabase.js';
+const $=id=>document.getElementById(id);
+let membership=null,branches=[],suppliers=[],medicines=[],purchases=[];
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function money(v){return 'TZS '+Number(v||0).toLocaleString('en-US',{maximumFractionDigits:2});}
+function notify(msg,type='success'){$('notice').textContent=msg;$('notice').className='notice show '+type;}
+
+async function initialize(){
+ const {data:{session},error:se}=await supabase.auth.getSession();
+ if(se)throw se;
+ if(!session){location.replace('../login.html');return;}
+
+ const {data:m,error}=await supabase.from('company_members')
+  .select('company_id,branch_id,role,membership_scope')
+  .eq('user_id',session.user.id).limit(1).maybeSingle();
+ if(error)throw error;
+ if(!m)throw new Error('Akaunti haina membership ya kampuni.');
+ membership={companyId:m.company_id,branchId:m.branch_id,role:m.role,scope:m.membership_scope};
+
+ const [br,su,me]=await Promise.all([
+  supabase.from('branches').select('id,name,is_active').eq('company_id',m.company_id).eq('is_active',true).order('name'),
+  supabase.from('suppliers').select('id,name').eq('company_id',m.company_id).eq('is_active',true).order('name'),
+  supabase.from('medicines').select('id,name,strength,unit,is_active').eq('company_id',m.company_id).eq('is_active',true).order('name')
+ ]);
+ if(br.error)throw br.error;if(su.error)throw su.error;if(me.error)throw me.error;
+ branches=br.data||[];suppliers=su.data||[];medicines=me.data||[];
+
+ if(membership.scope==='branch') branches=branches.filter(b=>b.id===membership.branchId);
+ $('branch').innerHTML=branches.map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+ $('branch').disabled=membership.scope==='branch';
+ $('supplier').innerHTML='<option value="">Hakuna supplier</option>'+suppliers.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+
+ if(!branches.length)throw new Error('Hakuna tawi linalopatikana kwa akaunti hii.');
+ if(!medicines.length)throw new Error('Sajili dawa kwanza kwenye Medicines kabla ya kupokea manunuzi.');
+
+ addItem();
+ await loadPurchases();
+}
+
+function medicineOptions(){
+ return '<option value="">Chagua dawa</option>'+medicines.map(m=>
+ `<option value="${esc(m.id)}">${esc(m.name)}${m.strength?' - '+esc(m.strength):''}</option>`
+ ).join('');
+}
+
+function addItem(){
+ const tr=document.createElement('tr');
+ tr.innerHTML=`
+ <td><select class="medicine-select med" required>${medicineOptions()}</select></td>
+ <td><input class="batch" required maxlength="100" placeholder="Batch no."></td>
+ <td><input class="expiry" type="date" required></td>
+ <td><input class="qty" type="number" min="0.01" step="0.01" required placeholder="0"></td>
+ <td><input class="cost" type="number" min="0" step="0.01" required placeholder="0"></td>
+ <td><input class="sell" type="number" min="0" step="0.01" required placeholder="0"></td>
+ <td class="lineTotal">TZS 0</td>
+ <td><button type="button" class="danger remove">✕</button></td>`;
+ $('itemRows').appendChild(tr);
+ tr.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',calculate));
+ tr.querySelector('.remove').addEventListener('click',()=>{tr.remove();calculate();});
+ calculate();
+}
+
+function calculate(){
+ let subtotal=0;
+ document.querySelectorAll('#itemRows tr').forEach(tr=>{
+  const qty=Number(tr.querySelector('.qty').value||0);
+  const cost=Number(tr.querySelector('.cost').value||0);
+  const line=qty*cost;
+  subtotal+=line;
+  tr.querySelector('.lineTotal').textContent=money(line);
+ });
+ const discount=Number($('discount').value||0),tax=Number($('tax').value||0),paid=Number($('paid').value||0);
+ const total=Math.max(0,subtotal-discount+tax);
+ $('subtotal').textContent=money(subtotal);
+ $('discountView').textContent=money(discount);
+ $('taxView').textContent=money(tax);
+ $('grandTotal').textContent=money(total);
+ $('balance').textContent=money(total-paid);
+}
+['discount','tax','paid'].forEach(id=>$(id).addEventListener('input',calculate));
+
+async function loadPurchases(){
+ $('purchaseEmpty').style.display='block';
+ $('purchaseEmpty').textContent='Inapakia manunuzi...';
+ const {data,error}=await supabase.from('purchases')
+  .select('id,purchase_number,status,purchase_date,total,amount_paid,supplier_id,branch_id')
+  .eq('company_id',membership.companyId)
+  .order('purchase_date',{ascending:false}).limit(300);
+ if(error)throw error;
+ purchases=data||[];
+ renderPurchases();
+}
+
+function renderPurchases(){
+ const term=$('search').value.trim().toLowerCase();
+ const filtered=purchases.filter(p=>p.purchase_number.toLowerCase().includes(term));
+ const supplierMap=Object.fromEntries(suppliers.map(s=>[s.id,s.name]));
+ const branchMap=Object.fromEntries(branches.map(b=>[b.id,b.name]));
+ $('purchaseCount').textContent=purchases.length;
+ $('purchaseValue').textContent=money(purchases.reduce((n,p)=>n+Number(p.total||0),0));
+ $('purchaseBalance').textContent=money(purchases.reduce((n,p)=>n+Math.max(0,Number(p.total||0)-Number(p.amount_paid||0)),0));
+ $('purchaseRows').innerHTML=filtered.map(p=>`
+ <tr>
+ <td><strong>${esc(p.purchase_number)}</strong></td>
+ <td>${esc(new Date(p.purchase_date).toLocaleString())}</td>
+ <td>${esc(supplierMap[p.supplier_id]||'—')}</td>
+ <td>${esc(branchMap[p.branch_id]||'—')}</td>
+ <td>${money(p.total)}</td>
+ <td>${money(p.amount_paid)}</td>
+ <td>${money(Number(p.total)-Number(p.amount_paid))}</td>
+ <td><span class="status">${esc(p.status.toUpperCase())}</span></td>
+ </tr>`).join('');
+ $('purchaseEmpty').style.display=filtered.length?'none':'block';
+ $('purchaseEmpty').textContent=term?'Hakuna purchase inayolingana.':'Bado hakuna manunuzi yaliyopokelewa.';
+}
+
+function openModal(){
+ $('purchaseForm').reset();
+ $('itemRows').innerHTML='';
+ $('paid').value='0';$('discount').value='0';$('tax').value='0';
+ addItem();calculate();
+ $('modal').classList.add('show');
+}
+function closeModal(){$('modal').classList.remove('show');}
+
+$('newPurchase').addEventListener('click',openModal);
+$('close').addEventListener('click',closeModal);
+$('cancel').addEventListener('click',closeModal);
+$('addItem').addEventListener('click',addItem);
+$('search').addEventListener('input',renderPurchases);
+
+$('refresh').addEventListener('click',async()=>{
+ try{await loadPurchases();notify('Manunuzi yamesasishwa.');}
+ catch(e){notify(e.message,'error');}
+});
+
+$('purchaseForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(!membership)return;
+ const rows=[...document.querySelectorAll('#itemRows tr')];
+ if(!rows.length){notify('Ongeza angalau bidhaa moja.','error');return;}
+
+ const items=[];
+ for(const tr of rows){
+  const medicine_id=tr.querySelector('.med').value;
+  const batch_number=tr.querySelector('.batch').value.trim();
+  const expiry_date=tr.querySelector('.expiry').value;
+  const quantity=Number(tr.querySelector('.qty').value);
+  const unit_cost=Number(tr.querySelector('.cost').value);
+  const selling_price=Number(tr.querySelector('.sell').value);
+  if(!medicine_id||!batch_number||!expiry_date||!quantity||quantity<=0||
+     unit_cost<0||selling_price<0||!Number.isFinite(unit_cost)||!Number.isFinite(selling_price)){
+   notify('Kagua dawa, batch, expiry, quantity na bei za kila mstari.','error');return;
+  }
+  items.push({
+   medicine_id,batch_number,expiry_date,
+   manufacture_date:null,quantity,unit_cost,selling_price
+  });
+ }
+
+ const total=items.reduce((n,x)=>n+x.quantity*x.unit_cost,0)-
+  Number($('discount').value||0)+Number($('tax').value||0);
+ if(Number($('discount').value||0)<0||Number($('tax').value||0)<0||
+    Number($('paid').value||0)<0||Number($('paid').value||0)>Math.max(0,total)){
+  notify('Kagua discount, tax na kiasi kilicholipwa. Malipo hayawezi kuzidi jumla.','error');return;
+ }
+
+ const payload={
+  p_company_id:membership.companyId,
+  p_branch_id:$('branch').value,
+  p_supplier_id:$('supplier').value||null,
+  p_items:items,
+  p_discount:Number($('discount').value||0),
+  p_tax:Number($('tax').value||0),
+  p_amount_paid:Number($('paid').value||0),
+  p_notes:$('notes').value.trim()||null
+ };
+
+ $('save').disabled=true;$('save').textContent='Inapokea stock...';
+ try{
+  const {data,error}=await supabase.rpc('create_purchase_with_items',payload);
+  if(error)throw error;
+  closeModal();
+  await loadPurchases();
+  notify('Manunuzi yamepokelewa. Namba: '+data.purchase_number+
+   '. Stock imeongezwa kwenye tawi husika.');
+ }catch(err){
+  console.error('Purchase receiving:',err);
+  notify('Imeshindikana kupokea manunuzi: '+err.message,'error');
+ }finally{
+  $('save').disabled=false;$('save').textContent='Hifadhi na Pokea Stock';
+ }
+});
+
+initialize().catch(e=>{
+ console.error('Purchases module:',e);
+ notify('Hitilafu: '+e.message,'error');
+ $('purchaseEmpty').textContent='Imeshindikana kupakia manunuzi.';
+});
+</script>
+</body>
+</html>

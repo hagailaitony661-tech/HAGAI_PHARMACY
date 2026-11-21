@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings | HAGAI PHARMACY</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f6fa;color:#172033;font-family:Arial,sans-serif}
+header{background:#102b46;color:white;padding:20px}
+header h2{margin:0 0 5px}
+main{max-width:1100px;margin:25px auto;padding:0 15px}
+.card{background:white;padding:22px;border-radius:12px;margin-bottom:18px;box-shadow:0 2px 12px #0000000c}
+h3{margin-top:0;color:#123b5d}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px}
+input,textarea,select{width:100%;padding:12px;border:1px solid #ccd5df;border-radius:7px;font-size:14px}
+textarea{min-height:80px;resize:vertical}
+.field{margin-bottom:14px}
+button{background:#087b55;color:white;border:0;padding:12px 20px;border-radius:7px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5}
+.secondary{background:#36536d}
+#notice{padding:12px;border-radius:7px;margin-bottom:15px;display:none}
+.logo{max-width:130px;max-height:100px;object-fit:contain;display:block;margin:10px 0}
+.help{color:#64748b;font-size:12px}
+@media(max-width:650px){.grid{grid-template-columns:1fr}main{margin:12px auto}.card{padding:16px}}
+</style>
+</head>
+<body>
+<header>
+<h2>⚙ HAGAI PHARMACY</h2>
+<div>Business Settings & Office Branding</div>
+</header>
+
+<main>
+<div id="notice"></div>
+
+<section class="card">
+<h3>🏢 Taarifa za Kampuni</h3>
+<p class="help">Taarifa hizi zitatumika kwenye nyaraka za kampuni.</p>
+<div class="grid">
+<div class="field">
+<label>Jina la biashara / kampuni *</label>
+<input id="name" required>
+</div>
+<div class="field">
+<label>Jina rasmi la kisheria</label>
+<input id="legal_name">
+</div>
+<div class="field">
+<label>Namba ya simu</label>
+<input id="phone">
+</div>
+<div class="field">
+<label>WhatsApp</label>
+<input id="whatsapp_number">
+</div>
+<div class="field">
+<label>Email / Gmail</label>
+<input id="email" type="email">
+</div>
+<div class="field">
+<label>Namba ya usajili wa kodi</label>
+<input id="tax_registration_number">
+</div>
+</div>
+<div class="field">
+<label>Anwani ya ofisi</label>
+<textarea id="address"></textarea>
+</div>
+<div class="field">
+<label>Logo ya kampuni</label>
+<input id="logo_file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+<img id="logo_preview" class="logo" hidden alt="Company logo">
+<input id="logo_url" type="url" placeholder="Au weka URL ya logo">
+<p class="help">Picha PNG, JPG, WEBP au SVG; ukubwa usizidi 2MB.</p>
+</div>
+<div class="field">
+<label>Maandishi ya watermark</label>
+<input id="watermark_text" placeholder="Mfano: HAGAI PHARMACY">
+</div>
+</section>
+
+<section class="card">
+<h3>🧾 Muundo wa Risiti</h3>
+<div class="grid">
+<div class="field">
+<label>Upana wa karatasi ya printer</label>
+<select id="receipt_paper_mm">
+<option value="58">58mm Thermal Printer</option>
+<option value="80">80mm Thermal Printer</option>
+</select>
+</div>
+<div class="field">
+<label>Fedha</label>
+<select id="currency_code">
+<option value="TZS">Tanzanian Shilling (TZS)</option>
+</select>
+</div>
+</div>
+<div class="field">
+<label>Ujumbe wa chini ya risiti</label>
+<textarea id="receipt_footer" placeholder="Asante kwa kufanya biashara nasi."></textarea>
+</div>
+</section>
+
+<section class="card">
+<h3>📄 Muundo wa Invoice</h3>
+<div class="field">
+<label>Ujumbe wa chini ya invoice</label>
+<textarea id="invoice_footer" placeholder="Thank you for your business."></textarea>
+</div>
+<div class="help">Invoice itatumia muundo wa A4, logo na watermark ya kampuni.</div>
+</section>
+
+<section class="card">
+<h3>🌍 Mfumo</h3>
+<div class="grid">
+<div class="field">
+<label>Time zone</label>
+<select id="timezone">
+<option value="Africa/Dar_es_Salaam">Africa/Dar_es_Salaam</option>
+</select>
+</div>
+<div class="field">
+<label>Company ID</label>
+<input id="company_id" readonly>
+</div>
+</div>
+</section>
+
+<section class="card">
+<button id="saveBtn">HIFADHI SETTINGS</button>
+<button class="secondary" id="reloadBtn" type="button">PAKIA TENA</button>
+<p class="help">Ni owner/admin pekee anayeruhusiwa kubadilisha taarifa hizi.</p>
+</section>
+</main>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import {supabase} from '../assets/js/supabase.js';
+
+const $=id=>document.getElementById(id);
+let companyId=null;
+let currentLogoPath=null;
+
+function notice(message,type='success'){
+ const n=$('notice');
+ n.textContent=message;
+ n.style.display='block';
+ n.style.background=type==='error'?'#fee2e2':'#dcfce7';
+ n.style.color=type==='error'?'#991b1b':'#166534';
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function loadSettings(){
+ $('saveBtn').disabled=true;
+
+ const {data:{session},error:sessionError}=await supabase.auth.getSession();
+ if(sessionError||!session){
+  location.href='../login.html';
+  return;
+ }
+
+ const {data:member,error:memberError}=await supabase
+  .from('company_members')
+  .select('company_id,role,membership_scope')
+  .eq('user_id',session.user.id)
+  .limit(1)
+  .maybeSingle();
+
+ if(memberError||!member){
+  notice('Akaunti hii haina kampuni iliyounganishwa.','error');
+  return;
+ }
+
+ if(!['owner','admin'].includes(member.role)){
+  notice('Huna ruhusa ya kubadilisha Settings. Owner/Admin pekee.','error');
+  return;
+ }
+
+ companyId=member.company_id;
+ $('company_id').value=companyId;
+
+ const {data:c,error}=await supabase
+  .from('companies')
+  .select('id,name,legal_name,phone,email,address,logo_path,logo_url,watermark_text,currency_code,timezone,receipt_paper_mm,receipt_footer,invoice_footer,tax_registration_number,whatsapp_number')
+  .eq('id',companyId)
+  .single();
+
+ if(error){
+  notice('Imeshindikana kupakia taarifa: '+error.message,'error');
+  return;
+ }
+
+ [
+  'name','legal_name','phone','email','address','logo_url',
+  'watermark_text','currency_code','timezone','receipt_paper_mm',
+  'receipt_footer','invoice_footer','tax_registration_number',
+  'whatsapp_number'
+ ].forEach(k=>{
+  if($(k)) $(k).value=c[k]??'';
+ });
+
+ currentLogoPath=c.logo_path||null;
+
+ if(c.logo_url){
+  $('logo_preview').src=c.logo_url;
+  $('logo_preview').hidden=false;
+ }
+
+ $('saveBtn').disabled=false;
+}
+
+async function uploadLogo(){
+ const file=$('logo_file').files[0];
+ if(!file)return $('logo_url').value.trim()||null;
+
+ const allowed=['image/png','image/jpeg','image/webp','image/svg+xml'];
+ if(!allowed.includes(file.type))throw new Error('Aina ya picha hairuhusiwi.');
+ if(file.size>2*1024*1024)throw new Error('Logo imezidi 2MB.');
+
+ const ext=file.name.split('.').pop().toLowerCase();
+ const path=companyId+'/logo-'+Date.now()+'.'+ext;
+
+ const {error}=await supabase.storage
+  .from('company-branding')
+  .upload(path,file,{upsert:true,contentType:file.type});
+
+ if(error)throw error;
+
+ const {data}=supabase.storage.from('company-branding').getPublicUrl(path);
+
+ return {url:data.publicUrl,path};
+}
+
+$('logo_file').addEventListener('change',()=>{
+ const file=$('logo_file').files[0];
+ if(!file)return;
+ $('logo_preview').src=URL.createObjectURL(file);
+ $('logo_preview').hidden=false;
+});
+
+$('saveBtn').addEventListener('click',async()=>{
+ const btn=$('saveBtn');
+ btn.disabled=true;
+ btn.textContent='INAHIFADHI...';
+
+ try{
+  if(!$('name').value.trim())throw new Error('Jina la kampuni linahitajika.');
+
+  let logoUrl=$('logo_url').value.trim();
+  let logoPath=currentLogoPath;
+
+  const uploaded=await uploadLogo();
+  if(uploaded&&typeof uploaded==='object'){
+   logoUrl=uploaded.url;
+   logoPath=uploaded.path;
+  }
+
+  const payload={
+   name:$('name').value.trim(),
+   legal_name:$('legal_name').value.trim()||null,
+   phone:$('phone').value.trim()||null,
+   whatsapp_number:$('whatsapp_number').value.trim()||null,
+   email:$('email').value.trim()||null,
+   address:$('address').value.trim()||null,
+   logo_url:logoUrl||null,
+   logo_path:logoPath||null,
+   watermark_text:$('watermark_text').value.trim()||null,
+   currency_code:$('currency_code').value,
+   timezone:$('timezone').value,
+   receipt_paper_mm:Number($('receipt_paper_mm').value),
+   receipt_footer:$('receipt_footer').value.trim()||null,
+   invoice_footer:$('invoice_footer').value.trim()||null,
+   tax_registration_number:$('tax_registration_number').value.trim()||null,
+   updated_at:new Date().toISOString()
+  };
+
+  const {error}=await supabase.from('companies')
+   .update(payload).eq('id',companyId);
+
+  if(error)throw error;
+
+  currentLogoPath=logoPath;
+  $('logo_url').value=logoUrl;
+  notice('Settings zimehifadhiwa kikamilifu.');
+ }catch(e){
+  notice('Hitilafu: '+e.message,'error');
+ }finally{
+  btn.disabled=false;
+  btn.textContent='HIFADHI SETTINGS';
+ }
+});
+
+$('reloadBtn').addEventListener('click',loadSettings);
+
+loadSettings();
+</script>
+</body>
+</html>

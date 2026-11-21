@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports | HAGAI PHARMACY</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6fa;color:#172033;font-family:Arial,sans-serif}
+header{background:#102b46;color:white;padding:20px}header h2{margin:0 0 5px}
+main{max-width:1250px;margin:24px auto;padding:0 15px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+.card{background:white;padding:18px;border-radius:11px;box-shadow:0 2px 12px #0000000c;margin-bottom:17px}
+.stat{font-size:22px;font-weight:bold;margin-top:9px;overflow-wrap:anywhere}
+small,.muted{color:#64748b;font-size:12px}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+input,select{padding:11px;border:1px solid #ccd5df;border-radius:7px;background:white}
+.toolbar input,.toolbar select{flex:1;min-width:140px}
+button{background:#087b55;color:white;border:0;border-radius:7px;padding:11px 15px;font-weight:bold;cursor:pointer}
+.secondary{background:#24506f}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{padding:11px 9px;text-align:left;border-bottom:1px solid #e7edf3;font-size:13px}
+th{background:#f7f9fc}.table-wrap{overflow-x:auto}
+#notice{display:none;padding:12px;border-radius:7px;margin-bottom:14px}
+.bar{height:9px;background:#e5edf4;border-radius:8px;overflow:hidden;min-width:70px}
+.bar span{display:block;height:100%;background:#087b55}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.grid{grid-template-columns:1fr 1fr}main{margin:12px auto}.card{padding:13px}.stat{font-size:18px}}
+</style>
+</head>
+<body>
+<header><h2>📈 BUSINESS REPORTS</h2><div>HAGAI PHARMACY MANAGEMENT SYSTEM</div></header>
+<main>
+<div id="notice"></div>
+<section class="card">
+<h3>Vichujio vya Ripoti</h3>
+<div class="toolbar">
+<select id="branch"></select>
+<input id="from" type="date">
+<input id="to" type="date">
+<button id="run">ONYESHA RIPOTI</button>
+<button class="secondary" id="export">PAKUA CSV</button>
+</div>
+<p class="muted">Mauzo na manunuzi hutumia kipindi ulichochagua. Stock na expiry huonyesha hali ya sasa.</p>
+</section>
+
+<div class="grid">
+<div class="card"><small>JUMLA YA MAUZO</small><div class="stat" id="sales">0</div><small>TZS</small></div>
+<div class="card"><small>JUMLA YA MANUNUZI</small><div class="stat" id="purchases">0</div><small>TZS</small></div>
+<div class="card"><small>IDADI YA MIAMALA YA MAUZO</small><div class="stat" id="salesCount">0</div></div>
+<div class="card"><small>MAUZO YALIYOLIPWA</small><div class="stat" id="paid">0</div><small>TZS</small></div>
+<div class="card"><small>DENI LA WATEJA</small><div class="stat" id="debt">0</div><small>TZS</small></div>
+<div class="card"><small>STOCK UNITS ZILIZOPO</small><div class="stat" id="stock">0</div></div>
+<div class="card"><small>BATCH ZINAZOISHA MUDA</small><div class="stat" id="expired">0</div></div>
+<div class="card"><small>BATCH ZINAZOKARIBIA KUISHA (90 DAYS)</small><div class="stat" id="expiring">0</div></div>
+</div>
+
+<section class="card">
+<h3>📊 Muhtasari wa Mauzo kwa Tarehe</h3>
+<div class="table-wrap"><table><thead><tr><th>Tarehe</th><th>Miamala</th><th>Mauzo</th><th>Imelipwa</th></tr></thead><tbody id="dailyRows"></tbody></table></div>
+</section>
+
+<section class="card">
+<h3>🏆 Dawa Zinazouzwa Zaidi</h3>
+<div class="table-wrap"><table><thead><tr><th>Dawa</th><th>Idadi Iliyouzwa</th><th>Thamani ya Mauzo</th></tr></thead><tbody id="topRows"></tbody></table></div>
+</section>
+
+<section class="card">
+<h3>🏬 Ulinganisho wa Matawi</h3>
+<div class="table-wrap"><table><thead><tr><th>Tawi</th><th>Miamala</th><th>Mauzo</th><th>Imelipwa</th></tr></thead><tbody id="branchRows"></tbody></table></div>
+</section>
+
+<section class="card">
+<h3>📦 Stock na Expiry Report</h3>
+<div class="table-wrap"><table><thead><tr><th>Dawa</th><th>Tawi</th><th>Batch</th><th>Expiry</th><th>Stock</th><th>Hali</th></tr></thead><tbody id="stockRows"></tbody></table></div>
+</section>
+
+<section class="card">
+<h3>🛒 Manunuzi</h3>
+<div class="table-wrap"><table><thead><tr><th>Tarehe</th><th>Namba</th><th>Supplier</th><th>Jumla</th><th>Imelipwa</th><th>Salio</th></tr></thead><tbody id="purchaseRows"></tbody></table></div>
+</section>
+<p class="muted">Ripoti za faida kamili zinahitaji pia kuzingatia gharama za bidhaa zilizouzwa, matumizi na marekebisho ya stock. Takwimu hizi hazipaswi kuchukuliwa kama hesabu ya mwisho ya fedha.</p>
+</main>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import {supabase} from '../assets/js/supabase.js';
+const $=id=>document.getElementById(id);
+let companyId,member,branches=[],sales=[],purchases=[],batches=[],medicines=[],saleItems=[],suppliers=[];
+const today=new Date().toISOString().slice(0,10);
+$('to').value=today;
+$('from').value=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
+const money=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function msg(t,err=false){const n=$('notice');n.textContent=t;n.style.display='block';n.style.background=err?'#fee2e2':'#dcfce7';n.style.color=err?'#991b1b':'#166534'}
+function branchQuery(q){const id=$('branch').value;if(id&&id!=='all')q=q.eq('branch_id',id);return q}
+function rangeQuery(q,col){const f=$('from').value,t=$('to').value;if(f)q=q.gte(col,f);if(t)q=q.lte(col,t+'T23:59:59');return q}
+async function init(){
+ const {data:{session}}=await supabase.auth.getSession();
+ if(!session){location.href='../login.html';return}
+ const {data:m,error}=await supabase.from('company_members').select('company_id,branch_id,membership_scope').eq('user_id',session.user.id).limit(1).maybeSingle();
+ if(error||!m){msg('Akaunti haina kampuni.',true);return}
+ member=m;companyId=m.company_id;
+ const {data:b,error:be}=await supabase.from('branches').select('id,name').eq('company_id',companyId).eq('is_active',true);
+ if(be){msg(be.message,true);return}
+ branches=b||[];
+ const opts=branches.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+ $('branch').innerHTML=member.membership_scope==='branch'?opts:'<option value="all">Matawi yote</option>'+opts;
+ if(member.membership_scope==='branch'){$('branch').disabled=true;$('branch').value=member.branch_id}
+ await load();
+}
+async function load(){
+ msg('Inakusanya taarifa za ripoti...');
+ const salesQ=rangeQuery(branchQuery(supabase.from('sales').select('*').eq('company_id',companyId)),'sale_date');
+ const purchaseQ=rangeQuery(branchQuery(supabase.from('purchases').select('*').eq('company_id',companyId)),'purchase_date');
+ const batchQ=branchQuery(supabase.from('medicine_batches').select('id,branch_id,medicine_id,batch_number,expiry_date,quantity_available,selling_price').eq('company_id',companyId));
+ const [s,p,b,m,sup]=await Promise.all([
+  salesQ,purchaseQ,batchQ,
+  supabase.from('medicines').select('id,name,strength').eq('company_id',companyId),
+  supabase.from('suppliers').select('id,name').eq('company_id',companyId)
+ ]);
+ for(const r of [s,p,b,m,sup])if(r.error){msg('Hitilafu ya ripoti: '+r.error.message,true);return}
+ sales=s.data||[];purchases=p.data||[];batches=b.data||[];medicines=m.data||[];suppliers=sup.data||[];
+ const ids=sales.map(x=>x.id);
+ saleItems=[];
+ if(ids.length){
+  const {data,error}=await supabase.from('sale_items').select('sale_id,medicine_id,quantity,unit_price,line_total').in('sale_id',ids);
+  if(error){msg(error.message,true);return}
+  saleItems=data||[];
+ }
+ render();msg('Ripoti zimepakiwa.');
+}
+function render(){
+ const sum=(a,k)=>a.reduce((n,x)=>n+Number(x[k]||0),0);
+ const total=sum(sales,'total'),paid=sum(sales,'amount_paid');
+ $('sales').textContent=money(total);$('purchases').textContent=money(sum(purchases,'total'));
+ $('salesCount').textContent=sales.length;$('paid').textContent=money(paid);
+ $('debt').textContent=money(total-paid);
+ const now=today,limit=new Date(Date.now()+90*86400000).toISOString().slice(0,10);
+ const expired=batches.filter(x=>x.expiry_date&&x.expiry_date<now&&Number(x.quantity_available)>0);
+ const expiring=batches.filter(x=>x.expiry_date&&x.expiry_date>=now&&x.expiry_date<=limit&&Number(x.quantity_available)>0);
+ $('stock').textContent=money(batches.reduce((n,x)=>n+Number(x.quantity_available||0),0));
+ $('expired').textContent=expired.length;$('expiring').textContent=expiring.length;
+ const daily={};
+ sales.forEach(x=>{const d=String(x.sale_date).slice(0,10);if(!daily[d])daily[d]={count:0,total:0,paid:0};daily[d].count++;daily[d].total+=Number(x.total||0);daily[d].paid+=Number(x.amount_paid||0)});
+ $('dailyRows').innerHTML=Object.entries(daily).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,x])=>`<tr><td>${esc(d)}</td><td>${x.count}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td></tr>`).join('')||'<tr><td colspan="4">Hakuna mauzo.</td></tr>';
+ const top={};
+ saleItems.forEach(x=>{if(!top[x.medicine_id])top[x.medicine_id]={qty:0,total:0};top[x.medicine_id].qty+=Number(x.quantity);top[x.medicine_id].total+=Number(x.line_total)});
+ $('topRows').innerHTML=Object.entries(top).sort((a,b)=>b[1].qty-a[1].qty).slice(0,20).map(([id,x])=>`<tr><td>${esc(medicines.find(m=>m.id===id)?.name||'Dawa')}</td><td>${money(x.qty)}</td><td>${money(x.total)}</td></tr>`).join('')||'<tr><td colspan="3">Hakuna data ya mauzo ya dawa.</td></tr>';
+ $('branchRows').innerHTML=branches.map(br=>{
+  const list=sales.filter(x=>x.branch_id===br.id);
+  return `<tr><td>${esc(br.name)}</td><td>${list.length}</td><td>${money(sum(list,'total'))}</td><td>${money(sum(list,'amount_paid'))}</td></tr>`;
+ }).join('')||'<tr><td colspan="4">Hakuna matawi.</td></tr>';
+ const batchList=batches.filter(x=>Number(x.quantity_available)>0).sort((a,b)=>String(a.expiry_date).localeCompare(String(b.expiry_date)));
+ $('stockRows').innerHTML=batchList.slice(0,300).map(x=>{
+  const d=x.expiry_date||'';
+  const status=!d?'Hakuna tarehe':d<now?'IMEISHA MUDA':d<=limit?'KARIBIA KUISHA':'Salama';
+  return `<tr><td>${esc(medicines.find(m=>m.id===x.medicine_id)?.name||'Dawa')}</td><td>${esc(branches.find(b=>b.id===x.branch_id)?.name||'')}</td><td>${esc(x.batch_number)}</td><td>${esc(d)}</td><td>${money(x.quantity_available)}</td><td>${status}</td></tr>`;
+ }).join('')||'<tr><td colspan="6">Hakuna stock.</td></tr>';
+ $('purchaseRows').innerHTML=purchases.map(x=>`<tr><td>${esc(String(x.purchase_date||'').slice(0,10))}</td><td>${esc(x.purchase_number)}</td><td>${esc(suppliers.find(s=>s.id===x.supplier_id)?.name||'')}</td><td>${money(x.total)}</td><td>${money(x.amount_paid)}</td><td>${money(Number(x.total)-Number(x.amount_paid))}</td></tr>`).join('')||'<tr><td colspan="6">Hakuna manunuzi.</td></tr>';
+}
+$('run').onclick=load;$('branch').onchange=load;
+$('export').onclick=()=>{
+ const rows=[['Date','Sale Number','Branch','Total TZS','Paid TZS','Balance TZS']];
+ sales.forEach(x=>rows.push([String(x.sale_date||'').slice(0,10),x.sale_number,branches.find(b=>b.id===x.branch_id)?.name||'',x.total,x.amount_paid,Number(x.total)-Number(x.amount_paid)]));
+ const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='hagai-pharmacy-sales-report.csv';a.click();URL.revokeObjectURL(url);
+};
+init();
+</script>
+</body>
+</html>

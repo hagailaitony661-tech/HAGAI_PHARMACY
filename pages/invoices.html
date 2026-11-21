@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Receipts & Invoices | HAGAI PHARMACY</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6fa;color:#172033;font-family:Arial,sans-serif}
+header{background:#102b46;color:white;padding:20px}
+header h2{margin:0 0 5px}
+main{max-width:1200px;margin:25px auto;padding:0 15px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.card{background:white;padding:18px;border-radius:11px;box-shadow:0 2px 12px #0000000c}
+.stat{font-size:25px;font-weight:bold;margin-top:8px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+input,select{padding:11px;border:1px solid #ccd5df;border-radius:7px}
+.toolbar input{flex:1;min-width:180px}
+button{border:0;border-radius:6px;padding:9px 13px;cursor:pointer;font-weight:bold;background:#087b55;color:white}
+.secondary{background:#24506f}
+table{width:100%;border-collapse:collapse;min-width:750px}
+th,td{padding:12px 10px;text-align:left;border-bottom:1px solid #e7edf3;font-size:13px}
+th{background:#f7f9fc}
+.table-wrap{overflow-x:auto}
+.muted{color:#64748b;font-size:12px}
+#notice{display:none;padding:12px;border-radius:7px;margin-bottom:15px}
+@media(max-width:650px){.stats{grid-template-columns:1fr}main{margin:12px auto}.card{padding:13px}}
+</style>
+</head>
+<body>
+<header>
+<h2>🧾 RECEIPTS & INVOICES</h2>
+<div>HAGAI PHARMACY MANAGEMENT SYSTEM</div>
+</header>
+<main>
+<div id="notice"></div>
+<div class="stats">
+<div class="card">Jumla ya Mauzo <div class="stat" id="salesCount">0</div></div>
+<div class="card">Jumla ya Mauzo (TZS)<div class="stat" id="salesTotal">0</div></div>
+<div class="card">Invoices Zilizotengenezwa<div class="stat" id="invoiceCount">0</div></div>
+</div>
+
+<section class="card">
+<h3>Historia ya Risiti na Invoice</h3>
+<div class="toolbar">
+<input id="search" placeholder="Tafuta sale number au invoice number...">
+<input id="fromDate" type="date">
+<input id="toDate" type="date">
+<button id="reload">PAKIA TENA</button>
+</div>
+<p class="muted">Chagua mauzo kisha chapisha risiti ya thermal au tengeneza invoice ya A4.</p>
+<div class="table-wrap">
+<table>
+<thead><tr>
+<th>Tarehe</th><th>Sale Number</th><th>Invoice Number</th>
+<th>Jumla</th><th>Imelipwa</th><th>Salio</th><th>Vitendo</th>
+</tr></thead>
+<tbody id="rows"><tr><td colspan="7">Inapakia...</td></tr></tbody>
+</table>
+</div>
+</section>
+</main>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import {supabase} from '../assets/js/supabase.js';
+const $=id=>document.getElementById(id);
+let companyId=null,scope=null,branchId=null;
+let company={},sales=[],invoices=[],branches=[],customers=[];
+
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>Number(v||0).toLocaleString('en-US');
+function notice(msg,error=false){
+ const n=$('notice');n.textContent=msg;n.style.display='block';
+ n.style.background=error?'#fee2e2':'#dcfce7';
+ n.style.color=error?'#991b1b':'#166534';
+}
+async function init(){
+ const {data:{session}}=await supabase.auth.getSession();
+ if(!session){location.href='../login.html';return}
+ const {data:m,error}=await supabase.from('company_members')
+  .select('company_id,branch_id,membership_scope,role')
+  .eq('user_id',session.user.id).limit(1).maybeSingle();
+ if(error||!m){notice('Akaunti haina kampuni iliyounganishwa.',true);return}
+ companyId=m.company_id;scope=m.membership_scope;branchId=m.branch_id;
+
+ const [co,br,cu]=await Promise.all([
+  supabase.from('companies').select('*').eq('id',companyId).single(),
+  supabase.from('branches').select('id,name,phone,email,address').eq('company_id',companyId),
+  supabase.from('customers').select('id,full_name,phone,email,address').eq('company_id',companyId)
+ ]);
+ if(co.error){notice(co.error.message,true);return}
+ company=co.data;branches=br.data||[];customers=cu.data||[];
+ await load();
+}
+async function load(){
+ $('rows').innerHTML='<tr><td colspan="7">Inapakia...</td></tr>';
+ let q=supabase.from('sales').select('*').eq('company_id',companyId)
+  .order('sale_date',{ascending:false}).limit(500);
+ if(scope==='branch'&&branchId)q=q.eq('branch_id',branchId);
+ const [s,i]=await Promise.all([
+  q,
+  supabase.from('invoices').select('id,sale_id,invoice_number,status,issue_date').eq('company_id',companyId)
+ ]);
+ if(s.error){notice('Mauzo: '+s.error.message,true);return}
+ if(i.error){notice('Invoices: '+i.error.message,true);return}
+ sales=s.data||[];invoices=i.data||[];
+ $('salesCount').textContent=sales.length;
+ $('salesTotal').textContent=money(sales.reduce((a,x)=>a+Number(x.total||0),0));
+ $('invoiceCount').textContent=invoices.length;
+ render();
+}
+function render(){
+ const term=$('search').value.toLowerCase();
+ const from=$('fromDate').value,to=$('toDate').value;
+ const filtered=sales.filter(s=>{
+  const inv=invoices.find(x=>x.sale_id===s.id);
+  const hay=(s.sale_number+' '+(inv?.invoice_number||'')).toLowerCase();
+  const day=String(s.sale_date||'').slice(0,10);
+  return (!term||hay.includes(term))&&(!from||day>=from)&&(!to||day<=to);
+ });
+ if(!filtered.length){$('rows').innerHTML='<tr><td colspan="7">Hakuna mauzo yaliyopatikana.</td></tr>';return}
+ $('rows').innerHTML=filtered.map(s=>{
+  const inv=invoices.find(x=>x.sale_id===s.id);
+  return `<tr>
+  <td>${esc(new Date(s.sale_date).toLocaleString())}</td>
+  <td>${esc(s.sale_number)}</td><td>${esc(inv?.invoice_number||'Haijatengenezwa')}</td>
+  <td>${money(s.total)}</td><td>${money(s.amount_paid)}</td>
+  <td>${money(Number(s.total)-Number(s.amount_paid))}</td>
+  <td><button class="secondary" data-receipt="${s.id}">Risiti</button>
+  <button data-invoice="${s.id}">${inv?'Invoice':'Tengeneza Invoice'}</button></td>
+  </tr>`;
+ }).join('');
+ $('rows').querySelectorAll('[data-receipt]').forEach(b=>b.onclick=()=>printDocument(b.dataset.receipt,'receipt'));
+ $('rows').querySelectorAll('[data-invoice]').forEach(b=>b.onclick=()=>printDocument(b.dataset.invoice,'invoice'));
+}
+function companyForBranch(branch){
+ return {
+  name:company.name||'HAGAI PHARMACY',
+  phone:branch?.phone||company.phone||'',
+  email:branch?.email||company.email||'',
+  address:branch?.address||company.address||'',
+  logo:company.logo_url||'',
+  footer:company.receipt_footer||'Asante kwa kufanya biashara nasi.',
+  invoiceFooter:company.invoice_footer||'Thank you for your business.',
+  watermark:company.watermark_text||company.name||'HAGAI PHARMACY',
+  tax:company.tax_registration_number||''
+ };
+}
+async function getSaleItems(saleId){
+ const {data,error}=await supabase.from('sale_items')
+  .select('quantity,unit_price,line_total,medicine_id,batch_id')
+  .eq('sale_id',saleId);
+ if(error)throw error;
+ const ids=[...new Set((data||[]).map(x=>x.medicine_id))];
+ let meds=[];
+ if(ids.length){
+  const r=await supabase.from('medicines').select('id,name,strength,unit').in('id',ids);
+  if(r.error)throw r.error;meds=r.data||[];
+ }
+ return (data||[]).map(x=>({...x,medicine:meds.find(m=>m.id===x.medicine_id)}));
+}
+async function ensureInvoice(sale){
+ let inv=invoices.find(x=>x.sale_id===sale.id);
+ if(inv)return inv;
+ const customer=customers.find(c=>c.id===sale.customer_id)||{};
+ const branch=branches.find(b=>b.id===sale.branch_id)||{};
+ const c=companyForBranch(branch);
+ const payload={
+  company_id:companyId,branch_id:sale.branch_id,sale_id:sale.id,
+  invoice_number:'INV-'+sale.sale_number,status:'issued',
+  issue_date:new Date(sale.sale_date).toISOString().slice(0,10),
+  subtotal:sale.subtotal,discount:sale.discount,tax:sale.tax,
+  total:sale.total,amount_paid:sale.amount_paid,
+  customer_snapshot:{full_name:customer.full_name||'Walk-in Customer',phone:customer.phone||'',email:customer.email||'',address:customer.address||''},
+  company_snapshot:{name:c.name,phone:c.phone,email:c.email,address:c.address,logo_url:c.logo,tax_registration_number:c.tax,watermark_text:c.watermark}
+ };
+ const {data,error}=await supabase.from('invoices').insert(payload).select('*').single();
+ if(error)throw error;
+ invoices.push(data);$('invoiceCount').textContent=invoices.length;render();
+ return data;
+}
+async function printDocument(saleId,type){
+ const w=window.open('','_blank');
+ if(!w){notice('Ruhusu pop-up kwenye browser kisha jaribu tena.',true);return}
+ w.document.write('<p style="font-family:Arial;padding:30px">Inaandaa nyaraka...</p>');
+ try{
+  const sale=sales.find(x=>x.id===saleId);
+  if(!sale)throw new Error('Mauzo hayajapatikana.');
+  const items=await getSaleItems(saleId);
+  const branch=branches.find(b=>b.id===sale.branch_id)||{};
+  const c=companyForBranch(branch);
+  const customer=customers.find(x=>x.id===sale.customer_id)||{};
+  let invoice=null;
+  if(type==='invoice')invoice=await ensureInvoice(sale);
+  const paper=Number(company.receipt_paper_mm||80);
+  const isReceipt=type==='receipt';
+  const title=isReceipt?'RISITI':'INVOICE';
+  const number=isReceipt?sale.sale_number:invoice.invoice_number;
+  const rows=items.map(x=>`<tr>
+   <td>${esc(x.medicine?.name||'Medicine')}${x.medicine?.strength?' '+esc(x.medicine.strength):''}</td>
+   <td>${Number(x.quantity)}</td><td>${money(x.unit_price)}</td><td>${money(x.line_total)}</td>
+  </tr>`).join('');
+  const logo=c.logo?`<img src="${esc(c.logo)}" style="max-width:110px;max-height:65px;object-fit:contain">`:'';
+  const watermark=!isReceipt?`<div class="watermark">${esc(c.watermark)}</div>`:'';
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(number)}</title>
+  <style>
+  *{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;margin:0;padding:20px}
+  .paper{position:relative;max-width:${isReceipt?paper+'mm':'190mm'};margin:auto;overflow:hidden}
+  .watermark{position:fixed;top:42%;left:8%;font-size:65px;font-weight:bold;color:#e9edf1;opacity:.35;transform:rotate(-28deg);z-index:-1;white-space:nowrap}
+  .center{text-align:center}.head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}
+  h2{margin:5px 0}p{margin:4px 0;font-size:12px}.meta{margin:18px 0}
+  table{width:100%;border-collapse:collapse;margin:15px 0;font-size:${isReceipt?'11px':'12px'}}
+  th,td{padding:7px 4px;border-bottom:1px solid #ccc;text-align:left}
+  th{border-top:1px solid #222}
+  .right{text-align:right}.totals{margin-left:auto;width:${isReceipt?'100%':'270px'};font-size:13px}
+  .totals div{display:flex;justify-content:space-between;padding:4px}
+  .grand{font-weight:bold;border-top:1px solid #111;margin-top:5px;padding-top:8px}
+  .foot{text-align:center;margin-top:30px;font-size:11px}
+  @page{size:${isReceipt?paper+'mm auto':'A4'};margin:${isReceipt?'4mm':'12mm'}}
+  @media print{body{padding:0}}
+  </style></head><body><div class="paper">${watermark}
+  <div class="${isReceipt?'center':'head'}">${logo}
+  <div><h2>${esc(c.name)}</h2><p>${esc(branch.name||'')}</p>
+  <p>${esc(c.address)}</p><p>${esc(c.phone)} ${esc(c.email)}</p>
+  ${c.tax?`<p>TIN: ${esc(c.tax)}</p>`:''}</div>
+  ${isReceipt?'':`<div><h2>INVOICE</h2><b>${esc(number)}</b><p>Tarehe: ${esc(sale.sale_date)}</p></div>`}
+  </div>
+  ${isReceipt?`<hr><h3>RISITI</h3><p>Namba: ${esc(number)}</p><p>Tarehe: ${esc(sale.sale_date)}</p>`:''}
+  <div class="meta"><p><b>Mteja:</b> ${esc(customer.full_name||'Walk-in Customer')}</p>
+  ${customer.phone?`<p><b>Simu:</b> ${esc(customer.phone)}</p>`:''}
+  <p><b>Malipo:</b> ${esc(sale.payment_method||'')}</p></div>
+  <table><thead><tr><th>Dawa / Bidhaa</th><th>Qty</th><th>Bei</th><th>Jumla</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="totals">
+  <div><span>Subtotal</span><b>${money(sale.subtotal)}</b></div>
+  <div><span>Punguzo</span><b>${money(sale.discount)}</b></div>
+  <div><span>Kodi</span><b>${money(sale.tax)}</b></div>
+  <div class="grand"><span>JUMLA</span><b>${money(sale.total)} TZS</b></div>
+  <div><span>Imelipwa</span><b>${money(sale.amount_paid)}</b></div>
+  <div><span>Salio</span><b>${money(Number(sale.total)-Number(sale.amount_paid))}</b></div>
+  </div>
+  <div class="foot">${esc(isReceipt?c.footer:c.invoiceFooter)}
+  ${isReceipt?'<p>Karibu tena!</p>':'<p>'+esc(c.watermark)+'</p>'}</div>
+  </div><script>window.onload=()=>setTimeout(()=>window.print(),500)<\/script></body></html>`;
+  w.document.open();w.document.write(html);w.document.close();
+ }catch(e){w.close();notice('Imeshindikana kuandaa nyaraka: '+e.message,true)}
+}
+$('reload').onclick=load;
+$('search').oninput=render;
+$('fromDate').onchange=render;
+$('toDate').onchange=render;
+init();
+</script>
+</body>
+</html>

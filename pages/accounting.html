@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Accounting | HAGAI PHARMACY</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6fa;color:#172033;font-family:Arial,sans-serif}
+header{background:#102b46;color:white;padding:20px}header h2{margin:0 0 5px}
+main{max-width:1250px;margin:24px auto;padding:0 15px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+.card{background:white;padding:18px;border-radius:11px;box-shadow:0 2px 12px #0000000c;margin-bottom:17px}
+.stat{font-size:22px;font-weight:bold;margin-top:10px;overflow-wrap:anywhere}
+small,.muted{color:#64748b;font-size:12px}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+input,select,textarea{width:100%;padding:11px;border:1px solid #ccd5df;border-radius:7px;background:white}
+.toolbar input,.toolbar select{width:auto;flex:1;min-width:140px}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.field{margin-bottom:12px}label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px}
+button{background:#087b55;color:white;border:0;border-radius:7px;padding:11px 16px;font-weight:bold;cursor:pointer}
+.secondary{background:#24506f}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{padding:11px 9px;text-align:left;border-bottom:1px solid #e7edf3;font-size:13px}
+th{background:#f7f9fc}.table-wrap{overflow-x:auto}
+#notice{display:none;padding:12px;border-radius:7px;margin-bottom:14px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.grid,.formgrid{grid-template-columns:1fr}main{margin:12px auto}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header><h2>📊 ACCOUNTING & FINANCE</h2><div>HAGAI PHARMACY MANAGEMENT SYSTEM</div></header>
+<main>
+<div id="notice"></div>
+<div class="toolbar">
+<label style="align-self:center">Tawi:</label>
+<select id="branchFilter"></select>
+<input id="fromDate" type="date">
+<input id="toDate" type="date">
+<button id="refresh">PAKIA TENA</button>
+</div>
+
+<div class="grid">
+<div class="card"><small>JUMLA YA MAUZO</small><div class="stat" id="salesTotal">0</div><small>TZS</small></div>
+<div class="card"><small>GHARAMA ZA BIDHAA ZILIZOUZWA</small><div class="stat" id="cogs">0</div><small>TZS</small></div>
+<div class="card"><small>MATUMIZI YA BIASHARA</small><div class="stat" id="expenseTotal">0</div><small>TZS</small></div>
+<div class="card"><small>FAIDA YA MAKADIRIO</small><div class="stat" id="profit">0</div><small>TZS</small></div>
+<div class="card"><small>MALIPO YA WATEJA</small><div class="stat" id="paidSales">0</div><small>TZS</small></div>
+<div class="card"><small>DENI LA WATEJA</small><div class="stat" id="customerDebt">0</div><small>TZS</small></div>
+<div class="card"><small>MANUNUZI YA BIDHAA</small><div class="stat" id="purchaseTotal">0</div><small>TZS</small></div>
+<div class="card"><small>MALIPO KWA SUPPLIERS</small><div class="stat" id="supplierPaid">0</div><small>TZS</small></div>
+</div>
+
+<section class="card">
+<h3>➕ Rekodi Matumizi</h3>
+<div class="formgrid">
+<div class="field"><label>Tawi</label><select id="expenseBranch"></select></div>
+<div class="field"><label>Tarehe</label><input id="expenseDate" type="date"></div>
+<div class="field"><label>Aina ya matumizi</label>
+<select id="expenseCategory">
+<option>Rent / Kodi ya pango</option><option>Mishahara</option><option>Umeme</option>
+<option>Maji</option><option>Usafiri</option><option>Internet / Simu</option>
+<option>Matengenezo</option><option>Leseni na vibali</option><option>Marketing</option>
+<option>Stationery</option><option>Other</option>
+</select></div>
+<div class="field"><label>Kiasi (TZS)</label><input id="expenseAmount" type="number" min="1" step="0.01"></div>
+<div class="field"><label>Njia ya malipo</label><select id="expenseMethod"><option>Cash</option><option>Bank</option><option>Mobile Money</option><option>Other</option></select></div>
+<div class="field"><label>Reference / Namba ya muamala</label><input id="expenseReference"></div>
+</div>
+<div class="field"><label>Maelezo ya matumizi</label><textarea id="expenseDescription" placeholder="Eleza matumizi haya..."></textarea></div>
+<button id="saveExpense">HIFADHI MATUMIZI</button>
+</section>
+
+<section class="card">
+<h3>💳 Rekodi Malipo ya Supplier</h3>
+<div class="formgrid">
+<div class="field"><label>Tawi</label><select id="paymentBranch"></select></div>
+<div class="field"><label>Supplier</label><select id="supplier"></select></div>
+<div class="field"><label>Tarehe</label><input id="paymentDate" type="date"></div>
+<div class="field"><label>Kiasi (TZS)</label><input id="paymentAmount" type="number" min="1" step="0.01"></div>
+<div class="field"><label>Njia ya malipo</label><select id="paymentMethod"><option>Cash</option><option>Bank</option><option>Mobile Money</option><option>Other</option></select></div>
+<div class="field"><label>Reference / Namba ya muamala</label><input id="paymentReference"></div>
+</div>
+<div class="field"><label>Maelezo</label><textarea id="paymentNotes"></textarea></div>
+<button id="savePayment">HIFADHI MALIPO</button>
+</section>
+
+<section class="card">
+<h3>📒 Historia ya Matumizi</h3>
+<div class="table-wrap"><table><thead><tr><th>Tarehe</th><th>Tawi</th><th>Aina</th><th>Maelezo</th><th>Njia</th><th>Kiasi</th></tr></thead><tbody id="expenseRows"></tbody></table></div>
+</section>
+
+<section class="card">
+<h3>📒 Historia ya Malipo ya Suppliers</h3>
+<div class="table-wrap"><table><thead><tr><th>Tarehe</th><th>Tawi</th><th>Supplier</th><th>Reference</th><th>Njia</th><th>Kiasi</th></tr></thead><tbody id="paymentRows"></tbody></table></div>
+</section>
+<p class="muted">Faida ya makadirio = mauzo − gharama ya bidhaa zilizouzwa − matumizi yaliyorekodiwa. Haijajumuisha kodi, gharama nyingine zisizorekodiwa au marekebisho ya hesabu.</p>
+</main>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import {supabase} from '../assets/js/supabase.js';
+const $=id=>document.getElementById(id);
+let companyId,member,branches=[],suppliers=[],sales=[],purchases=[],expenses=[],payments=[],saleItems=[];
+const today=new Date().toISOString().slice(0,10);
+$('expenseDate').value=today;$('paymentDate').value=today;
+const money=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function msg(t,err=false){const n=$('notice');n.textContent=t;n.style.display='block';n.style.background=err?'#fee2e2':'#dcfce7';n.style.color=err?'#991b1b':'#166534';window.scrollTo(0,0)}
+function fillBranches(){
+ const allowed=member.membership_scope==='branch'?branches.filter(b=>b.id===member.branch_id):branches;
+ const opts=allowed.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
+ $('branchFilter').innerHTML=member.membership_scope==='branch'?opts:'<option value="all">Matawi yote</option>'+opts;
+ ['expenseBranch','paymentBranch'].forEach(id=>$(id).innerHTML=opts);
+ if(member.membership_scope==='branch')$('branchFilter').disabled=true;
+}
+async function init(){
+ const {data:{session}}=await supabase.auth.getSession();
+ if(!session){location.href='../login.html';return}
+ const {data:m,error}=await supabase.from('company_members').select('company_id,branch_id,membership_scope,role').eq('user_id',session.user.id).limit(1).maybeSingle();
+ if(error||!m){msg('Akaunti haina kampuni.',true);return}
+ member=m;companyId=m.company_id;
+ const [b,s]=await Promise.all([
+  supabase.from('branches').select('id,name').eq('company_id',companyId).eq('is_active',true),
+  supabase.from('suppliers').select('id,name').eq('company_id',companyId).eq('is_active',true)
+ ]);
+ if(b.error||s.error){msg(b.error?.message||s.error?.message,true);return}
+ branches=b.data||[];suppliers=s.data||[];
+ fillBranches();
+ $('supplier').innerHTML='<option value="">Chagua supplier</option>'+suppliers.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+ await load();
+}
+function dateFilter(q,column){
+ const f=$('fromDate').value,t=$('toDate').value;
+ if(f)q=q.gte(column,f);
+ if(t)q=q.lte(column,t+(column==='sale_date'?'T23:59:59':''));
+ return q;
+}
+function branchFilter(q){
+ const v=$('branchFilter').value;
+ if(v&&v!=='all')q=q.eq('branch_id',v);
+ return q;
+}
+async function load(){
+ const queries=[
+  dateFilter(branchFilter(supabase.from('sales').select('*').eq('company_id',companyId)),'sale_date'),
+  dateFilter(branchFilter(supabase.from('purchases').select('id,branch_id,supplier_id,total,amount_paid,purchase_date')),'purchase_date'),
+  dateFilter(branchFilter(supabase.from('expenses').select('*').eq('company_id',companyId)),'expense_date'),
+  dateFilter(branchFilter(supabase.from('supplier_payments').select('*').eq('company_id',companyId)),'payment_date')
+ ];
+ const results=await Promise.all(queries);
+ for(const r of results)if(r.error){msg(r.error.message,true);return}
+ [sales,purchases,expenses,payments]=results.map(r=>r.data||[]);
+ const ids=sales.map(s=>s.id);
+ saleItems=[];
+ if(ids.length){
+  const {data,error}=await supabase.from('sale_items').select('sale_id,quantity,unit_cost').in('sale_id',ids);
+  if(error){msg(error.message,true);return}
+  saleItems=data||[];
+ }
+ render();
+}
+function render(){
+ const sum=(a,k)=>a.reduce((n,x)=>n+Number(x[k]||0),0);
+ const totalSales=sum(sales,'total'),paid=sum(sales,'amount_paid');
+ const cogs=saleItems.reduce((n,x)=>n+Number(x.quantity)*Number(x.unit_cost),0);
+ const exp=sum(expenses,'amount'),purch=sum(purchases,'total'),supPaid=sum(payments,'amount');
+ $('salesTotal').textContent=money(totalSales);
+ $('paidSales').textContent=money(paid);
+ $('customerDebt').textContent=money(totalSales-paid);
+ $('cogs').textContent=money(cogs);
+ $('expenseTotal').textContent=money(exp);
+ $('profit').textContent=money(totalSales-cogs-exp);
+ $('purchaseTotal').textContent=money(purch);
+ $('supplierPaid').textContent=money(supPaid);
+ const bname=id=>branches.find(b=>b.id===id)?.name||'—';
+ $('expenseRows').innerHTML=expenses.slice().sort((a,b)=>b.expense_date.localeCompare(a.expense_date)).map(x=>`<tr><td>${esc(x.expense_date)}</td><td>${esc(bname(x.branch_id))}</td><td>${esc(x.category)}</td><td>${esc(x.description)}</td><td>${esc(x.payment_method)}</td><td>${money(x.amount)}</td></tr>`).join('')||'<tr><td colspan="6">Hakuna matumizi.</td></tr>';
+ $('paymentRows').innerHTML=payments.slice().sort((a,b)=>b.payment_date.localeCompare(a.payment_date)).map(x=>`<tr><td>${esc(x.payment_date)}</td><td>${esc(bname(x.branch_id))}</td><td>${esc(suppliers.find(s=>s.id===x.supplier_id)?.name||'Supplier')}</td><td>${esc(x.reference_number)}</td><td>${esc(x.payment_method)}</td><td>${money(x.amount)}</td></tr>`).join('')||'<tr><td colspan="6">Hakuna malipo.</td></tr>';
+}
+$('saveExpense').onclick=async()=>{
+ const amount=Number($('expenseAmount').value),branch=$('expenseBranch').value,desc=$('expenseDescription').value.trim();
+ if(!branch||!desc||!amount||amount<=0){msg('Jaza tawi, maelezo na kiasi sahihi.',true);return}
+ const btn=$('saveExpense');btn.disabled=true;
+ const {data:{session}}=await supabase.auth.getSession();
+ const {error}=await supabase.from('expenses').insert({
+  company_id:companyId,branch_id:branch,expense_date:$('expenseDate').value||today,
+  category:$('expenseCategory').value,description:desc,amount,
+  payment_method:$('expenseMethod').value,reference_number:$('expenseReference').value.trim()||null,
+  created_by:session.user.id
+ });
+ btn.disabled=false;
+ if(error){msg('Matumizi hayajahifadhiwa: '+error.message,true);return}
+ $('expenseAmount').value='';$('expenseDescription').value='';$('expenseReference').value='';
+ msg('Matumizi yamehifadhiwa.');await load();
+};
+$('savePayment').onclick=async()=>{
+ const amount=Number($('paymentAmount').value),branch=$('paymentBranch').value,supplier=$('supplier').value;
+ if(!branch||!supplier||!amount||amount<=0){msg('Chagua tawi, supplier na kiasi sahihi.',true);return}
+ const btn=$('savePayment');btn.disabled=true;
+ const {data:{session}}=await supabase.auth.getSession();
+ const {error}=await supabase.from('supplier_payments').insert({
+  company_id:companyId,branch_id:branch,supplier_id:supplier,
+  payment_date:$('paymentDate').value||today,amount,
+  payment_method:$('paymentMethod').value,
+  reference_number:$('paymentReference').value.trim()||null,
+  notes:$('paymentNotes').value.trim()||null,created_by:session.user.id
+ });
+ btn.disabled=false;
+ if(error){msg('Malipo hayajahifadhiwa: '+error.message,true);return}
+ $('paymentAmount').value='';$('paymentReference').value='';$('paymentNotes').value='';
+ msg('Malipo ya supplier yamehifadhiwa.');await load();
+};
+$('refresh').onclick=load;
+$('branchFilter').onchange=load;
+$('fromDate').onchange=load;$('toDate').onchange=load;
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login | HAGAI PHARMACY</title>
+<link rel="stylesheet" href="assets/css/auth.css">
+</head>
+<body>
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="brand">✚ HAGAI PHARMACY</div>
+    <p class="subtitle">PHARMACY MANAGEMENT SYSTEM</p>
+
+    <h1>Karibu Tena!</h1>
+    <p class="description">Ingia kwenye akaunti yako kuendelea.</p>
+
+    <form id="loginForm">
+      <label>Gmail / Email</label>
+      <input type="email" id="email" placeholder="mfano@gmail.com" required>
+
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Ingiza password yako" required>
+
+      <div class="forgot">
+        <a href="reset-password.html">Umesahau password?</a>
+      </div>
+
+      <p id="authMessage" class="auth-message"></p>
+
+      <button type="submit">LOGIN</button>
+    </form>
+
+    <p class="bottom-text">
+      Huna akaunti?
+      <a href="signup.html">Jisajili hapa</a>
+    </p>
+  </div>
+  <footer>© 2026 HAGAI PHARMACY SAAS</footer>
+</div>
+
+<script type="module" src="assets/js/auth.js"></script>
+</body>
+</html>

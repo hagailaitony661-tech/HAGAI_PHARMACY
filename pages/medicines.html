@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medicines | HAGAI PHARMACY</title>
+<style>
+:root{--blue:#1769e0;--dark:#17243b;--bg:#f4f7fc;--muted:#77849a;--border:#e5eaf2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--dark)}
+header{background:white;padding:18px 25px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:20px;font-weight:bold;color:var(--blue)}
+a{color:var(--blue);text-decoration:none}
+main{max-width:1450px;margin:auto;padding:25px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+h1{font-size:27px;margin:0 0 7px}
+.sub{color:var(--muted);font-size:13px}
+button{border:0;border-radius:8px;padding:11px 16px;cursor:pointer;font-weight:bold}
+button:disabled{opacity:.6;cursor:not-allowed}
+.primary{background:var(--blue);color:white}
+.secondary{background:#eaf1ff;color:var(--blue)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:24px 0}
+.card,.panel{background:white;border:1px solid var(--border);border-radius:12px;padding:19px}
+.card small{color:var(--muted)}
+.number{font-size:27px;font-weight:bold;margin-top:10px}
+.toolbar{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-bottom:17px}
+input,select,textarea{padding:12px;border:1px solid #dce3ee;border-radius:8px;background:white;min-width:0;font:inherit}
+#search{width:min(400px,100%)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th,td{text-align:left;padding:13px 10px;border-bottom:1px solid var(--border);font-size:13px}
+th{color:var(--muted);background:#f8faff}
+.pill{padding:5px 9px;border-radius:20px;background:#e8f8ef;color:#16834b;font-size:11px}
+.low{background:#fff2dc;color:#a76700}
+.expired{background:#ffe9e9;color:#c22}
+.soon{background:#fff4d8;color:#9b6500}
+.empty{text-align:center;color:var(--muted);padding:35px}
+.notice{padding:12px 15px;border-radius:8px;margin:15px 0;font-size:13px;display:none}
+.notice.show{display:block}
+.notice.error{background:#ffe9e9;color:#a21e1e}
+.notice.success{background:#e8f8ef;color:#176b3b}
+.modal{display:none;position:fixed;inset:0;background:#101b2b99;z-index:5;align-items:center;justify-content:center;padding:15px}
+.modal.show{display:flex}
+.dialog{background:white;width:min(850px,100%);max-height:94vh;overflow:auto;border-radius:15px;padding:23px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:12px;font-weight:bold;color:#526078}
+.field input,.field select,.field textarea{width:100%}
+.full{grid-column:1/-1}
+.formbuttons{display:flex;justify-content:flex-end;gap:10px}
+.formhead{display:flex;justify-content:space-between;align-items:center}
+.batch-list{font-size:12px;color:#66748a;margin-top:5px}
+.medicine-img{width:38px;height:38px;object-fit:cover;border-radius:7px;vertical-align:middle;margin-right:8px}
+@media(max-width:750px){main{padding:15px}.cards{grid-template-columns:1fr 1fr}header{padding:15px}.formgrid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">✚ HAGAI PHARMACY</div>
+ <a href="../index.html">← Dashboard</a>
+</header>
+
+<main>
+ <div class="top">
+  <div>
+   <h1>Medicine Management</h1>
+   <div class="sub">Dhibiti dawa, batches, bei, picha na stock</div>
+  </div>
+  <button class="primary" id="addBtn">＋ Add New Medicine</button>
+ </div>
+
+ <div id="notice" class="notice"></div>
+
+ <section class="cards">
+  <div class="card"><small>Total Medicines</small><div class="number" id="total">0</div></div>
+  <div class="card"><small>Total Stock Units</small><div class="number" id="units">0</div></div>
+  <div class="card"><small>Low Stock Items</small><div class="number" id="low">0</div></div>
+  <div class="card"><small>Expired Batches</small><div class="number" id="expired">0</div></div>
+ </section>
+
+ <section class="panel">
+  <div class="toolbar">
+   <input id="search" placeholder="Search medicine, batch or barcode...">
+   <select id="filter">
+    <option value="all">All medicines</option>
+    <option value="low">Low stock</option>
+    <option value="expired">Expired</option>
+    <option value="soon">Expiring soon</option>
+    <option value="valid">Valid stock</option>
+   </select>
+   <button class="secondary" id="refreshBtn">↻ Refresh</button>
+  </div>
+  <div class="tablewrap">
+   <table>
+    <thead>
+     <tr><th>MEDICINE</th><th>BATCHES</th><th>EXPIRY</th><th>BUY PRICE</th><th>SELL PRICE</th><th>QTY</th><th>STATUS</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+   </table>
+   <div class="empty" id="empty">Loading medicines...</div>
+  </div>
+ </section>
+ <p class="sub" style="margin-top:15px">HAGAI PHARMACY · Live database inventory</p>
+</main>
+
+<div class="modal" id="modal">
+ <div class="dialog">
+  <div class="formhead">
+   <h2>Register New Medicine</h2>
+   <button class="secondary" id="closeBtn">✕</button>
+  </div>
+  <p class="sub">Taarifa za dawa na batch yake ya kwanza.</p>
+
+  <form id="medicineForm">
+   <div class="formgrid">
+    <div class="field"><label>Medicine Name *</label><input name="name" required placeholder="e.g. Paracetamol"></div>
+    <div class="field"><label>Generic Name</label><input name="generic_name" placeholder="e.g. Paracetamol"></div>
+    <div class="field"><label>Category *</label>
+     <select name="category" required>
+      <option value="">Select category</option>
+      <option>Analgesic</option><option>Antibiotic</option><option>Antimalarial</option>
+      <option>Antihistamine</option><option>Antacid</option><option>Antidiabetic</option>
+      <option>Antihypertensive</option><option>Other</option>
+     </select>
+    </div>
+    <div class="field"><label>Strength</label><input name="strength" placeholder="e.g. 500mg"></div>
+    <div class="field"><label>Dosage Form</label>
+     <select name="dosage_form">
+      <option value="">Select form</option><option>Tablet</option><option>Capsule</option>
+      <option>Syrup</option><option>Injection</option><option>Cream</option>
+      <option>Ointment</option><option>Drops</option><option>Inhaler</option><option>Other</option>
+     </select>
+    </div>
+    <div class="field"><label>Unit *</label>
+     <select name="unit" required>
+      <option value="piece">Piece</option><option value="box">Box</option>
+      <option value="strip">Strip</option><option value="bottle">Bottle</option>
+      <option value="pack">Pack</option><option value="vial">Vial</option>
+      <option value="tube">Tube</option><option value="kg">Kg</option>
+      <option value="gram">Gram</option><option value="litre">Litre</option>
+     </select>
+    </div>
+    <div class="field"><label>Barcode</label><input name="barcode"></div>
+    <div class="field"><label>SKU / Product Code</label><input name="sku"></div>
+    <div class="field"><label>Branch *</label><select name="branch_id" id="branchSelect" required></select></div>
+    <div class="field"><label>Supplier</label><select name="supplier_id" id="supplierSelect"><option value="">No supplier selected</option></select></div>
+    <div class="field"><label>Batch Number *</label><input name="batch_number" required></div>
+    <div class="field"><label>Manufacture Date</label><input name="manufacture_date" type="date"></div>
+    <div class="field"><label>Expiry Date *</label><input name="expiry_date" type="date" required></div>
+    <div class="field"><label>Quantity *</label><input name="quantity" type="number" min="0.01" step="0.01" required></div>
+    <div class="field"><label>Buying Price (TZS) *</label><input name="purchase_price" type="number" min="0" step="0.01" required></div>
+    <div class="field"><label>Selling Price (TZS) *</label><input name="selling_price" type="number" min="0" step="0.01" required></div>
+    <div class="field"><label>Reorder Level</label><input name="reorder_level" type="number" min="0" value="10"></div>
+    <div class="field"><label>Medicine Photo</label><input name="image" id="imageInput" type="file" accept="image/*"></div>
+    <div class="field full"><label>Description / Notes</label><textarea name="description" rows="2"></textarea></div>
+   </div>
+   <div class="formbuttons">
+    <button type="button" class="secondary" id="cancelBtn">Cancel</button>
+    <button type="submit" class="primary" id="saveBtn">Save Medicine</button>
+   </div>
+  </form>
+ </div>
+</div>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import { supabase } from '../assets/js/supabase.js';
+
+const $ = id => document.getElementById(id);
+let user=null, companyId=null, medicines=[], batches=[], branches=[], access=null;
+const today = new Date().toISOString().slice(0,10);
+
+function notice(message,type='success'){
+ const el=$('notice'); el.textContent=message;
+ el.className='notice show '+type;
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+function escapeHtml(v){
+ return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function money(v){
+ return 'TZS '+Number(v||0).toLocaleString('en-US',{maximumFractionDigits:2});
+}
+function daysUntil(date){
+ return Math.ceil((new Date(date+'T00:00:00')-new Date(today+'T00:00:00'))/86400000);
+}
+function medicineBatches(id){return batches.filter(b=>b.medicine_id===id);}
+function medicineStatus(m){
+ const bs=medicineBatches(m.id);
+ const qty=bs.reduce((sum,b)=>sum+Number(b.quantity_available||0),0);
+ if(bs.length && bs.every(b=>b.expiry_date<today)) return 'expired';
+ if(qty<=Number(m.reorder_level||0)) return 'low';
+ if(bs.some(b=>daysUntil(b.expiry_date)<=30 && daysUntil(b.expiry_date)>=0)) return 'soon';
+ return 'valid';
+}
+function statusLabel(s){
+ return s==='expired'?'<span class="pill expired">Expired</span>':
+ s==='low'?'<span class="pill low">Low stock</span>':
+ s==='soon'?'<span class="pill soon">Expiring soon</span>':
+ '<span class="pill">In stock</span>';
+}
+
+async function initialize(){
+ const {data:{session},error}=await supabase.auth.getSession();
+ if(error||!session){window.location.replace('../login.html');return;}
+ user=session.user;
+
+ const {data:membership,error:memberError}=await supabase
+  .from('company_members').select('company_id,branch_id,role,membership_scope')
+  .eq('user_id',user.id).limit(1).maybeSingle();
+
+ if(memberError||!membership){
+  $('empty').textContent='Akaunti hii haina kampuni iliyounganishwa. Tafadhali wasiliana na administrator.';
+  return;
+ }
+ companyId=membership.company_id;
+ access={
+  companyId:membership.company_id,
+  branchId:membership.branch_id,
+  role:membership.role,
+  scope:membership.membership_scope
+ };
+
+ let branchQuery=supabase.from('branches')
+  .select('id,name')
+  .eq('company_id',companyId)
+  .eq('is_active',true)
+  .order('name');
+
+ if(access.scope==='branch'){
+  if(!access.branchId){
+   $('empty').textContent='Akaunti hii haijaunganishwa na tawi.';
+   return;
+  }
+  branchQuery=branchQuery.eq('id',access.branchId);
+ }
+
+ const [branchResult,supplierResult]=await Promise.all([
+  branchQuery,
+  supabase.from('suppliers').select('id,name').eq('company_id',companyId).eq('is_active',true).order('name')
+ ]);
+ if(branchResult.error){notice(branchResult.error.message,'error');return;}
+ branches=branchResult.data||[];
+ $('branchSelect').innerHTML=branches.map(b=>`<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+ if(access.scope==='branch'){
+  if(!branches.some(b=>b.id===access.branchId)){
+   $('empty').textContent='Tawi lako halijaonekana au huna ruhusa ya kulifikia.';
+   return;
+  }
+  $('branchSelect').value=access.branchId;
+  $('branchSelect').disabled=false;
+ }else{
+  $('branchSelect').disabled=false;
+ }
+ $('supplierSelect').innerHTML='<option value="">No supplier selected</option>'+
+  (supplierResult.data||[]).map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+
+ await loadMedicines();
+}
+
+async function loadMedicines(){
+ $('empty').style.display='block';
+ $('empty').textContent='Loading medicines from database...';
+
+ let batchQuery=supabase.from('medicine_batches')
+  .select('*')
+  .eq('company_id',companyId)
+  .order('expiry_date');
+
+ if(access.scope==='branch'){
+  batchQuery=batchQuery.eq('branch_id',access.branchId);
+ }
+
+ const [mResult,bResult]=await Promise.all([
+  supabase.from('medicines').select('*').eq('company_id',companyId).order('name'),
+  batchQuery
+ ]);
+ if(mResult.error||bResult.error){
+  $('empty').textContent='Database error: '+(mResult.error?.message||bResult.error?.message);
+  notice('Imeshindikana kupakia taarifa za dawa.','error');return;
+ }
+ medicines=mResult.data||[];
+ batches=bResult.data||[];
+ render();
+}
+
+function render(){
+ const q=$('search').value.trim().toLowerCase();
+ const filter=$('filter').value;
+
+ const filtered=medicines.filter(m=>{
+  const bs=medicineBatches(m.id);
+  const hay=[m.name,m.generic_name,m.category,m.barcode,m.sku,...bs.map(b=>b.batch_number)].join(' ').toLowerCase();
+  const status=medicineStatus(m);
+  return hay.includes(q)&&(filter==='all'||filter===status);
+ });
+
+ $('rows').innerHTML=filtered.map(m=>{
+  const bs=medicineBatches(m.id);
+  const qty=bs.reduce((sum,b)=>sum+Number(b.quantity_available||0),0);
+  const first=[...bs].sort((a,b)=>a.expiry_date.localeCompare(b.expiry_date))[0];
+  const batchNames=bs.map(b=>escapeHtml(b.batch_number)).join(', ')||'No batch';
+  const expiry=first?.expiry_date||'—';
+  return `<tr>
+   <td><b>${escapeHtml(m.name)}</b><br><small>${escapeHtml(m.generic_name||'')} ${escapeHtml(m.strength||'')}</small></td>
+   <td>${bs.length}<div class="batch-list">${batchNames}</div></td>
+   <td>${escapeHtml(expiry)}</td>
+   <td>${money(first?.purchase_price)}</td>
+   <td>${money(first?.selling_price)}</td>
+   <td><b>${qty.toLocaleString()}</b> ${escapeHtml(m.unit||'')}</td>
+   <td>${statusLabel(medicineStatus(m))}</td>
+  </tr>`;
+ }).join('');
+
+ $('empty').style.display=filtered.length?'none':'block';
+ if(!filtered.length)$('empty').textContent=medicines.length?'No matching medicines found.':'No medicines registered yet. Select Add New Medicine to begin.';
+
+ $('total').textContent=medicines.length;
+ $('units').textContent=batches.reduce((sum,b)=>sum+Number(b.quantity_available||0),0).toLocaleString();
+ $('low').textContent=medicines.filter(m=>medicineStatus(m)==='low').length;
+ $('expired').textContent=batches.filter(b=>b.expiry_date<today).length;
+}
+
+function openForm(){
+ if(!branches.length){notice('Hakuna branch inayopatikana. Hakikisha kampuni ina Main Branch.','error');return;}
+ $('medicineForm').reset();
+ $('modal').classList.add('show');
+}
+function closeForm(){$('modal').classList.remove('show');}
+
+$('addBtn').addEventListener('click',openForm);
+$('closeBtn').addEventListener('click',closeForm);
+$('cancelBtn').addEventListener('click',closeForm);
+$('refreshBtn').addEventListener('click',loadMedicines);
+$('search').addEventListener('input',render);
+$('filter').addEventListener('change',render);
+
+$('medicineForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const form=e.currentTarget;
+ const data=new FormData(form);
+ const saveBtn=$('saveBtn');
+ saveBtn.disabled=true;saveBtn.textContent='Saving...';
+
+ try{
+  let imageUrl=null;
+  const file=$('imageInput').files[0];
+
+  if(file){
+   if(!file.type.startsWith('image/'))throw new Error('Chagua picha halisi ya dawa.');
+   if(file.size>5*1024*1024)throw new Error('Picha isizidi 5MB.');
+   const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'');
+   const path=`${companyId}/${crypto.randomUUID()}.${ext}`;
+   const {error:uploadError}=await supabase.storage.from('medicine-images').upload(path,file,{
+    cacheControl:'3600',upsert:false,contentType:file.type
+   });
+   if(uploadError)throw uploadError;
+   imageUrl=supabase.storage.from('medicine-images').getPublicUrl(path).data.publicUrl;
+  }
+
+  const params={
+   p_company_id:companyId,
+   p_branch_id:data.get('branch_id'),
+   p_name:data.get('name').trim(),
+   p_generic_name:data.get('generic_name').trim()||null,
+   p_category:data.get('category')||null,
+   p_strength:data.get('strength').trim()||null,
+   p_dosage_form:data.get('dosage_form')||null,
+   p_unit:data.get('unit'),
+   p_barcode:data.get('barcode').trim()||null,
+   p_sku:data.get('sku').trim()||null,
+   p_image_url:imageUrl,
+   p_description:data.get('description').trim()||null,
+   p_reorder_level:Number(data.get('reorder_level')||0),
+   p_batch_number:data.get('batch_number').trim(),
+   p_manufacture_date:data.get('manufacture_date')||null,
+   p_expiry_date:data.get('expiry_date'),
+   p_quantity:Number(data.get('quantity')),
+   p_purchase_price:Number(data.get('purchase_price')),
+   p_selling_price:Number(data.get('selling_price')),
+   p_supplier_id:data.get('supplier_id')||null
+  };
+
+  if(params.p_selling_price<params.p_purchase_price){
+   if(!confirm('Selling price iko chini ya buying price. Unataka kuendelea?'))return;
+  }
+
+  const {data:medicineId,error}=await supabase.rpc('create_medicine_with_batch',params);
+  if(error)throw error;
+
+  closeForm();
+  form.reset();
+  notice('Dawa imehifadhiwa kwenye database kikamilifu. Medicine ID: '+medicineId,'success');
+  await loadMedicines();
+
+ }catch(err){
+  console.error(err);
+  notice('Imeshindikana kuhifadhi: '+(err.message||'Unknown error'),'error');
+ }finally{
+  saveBtn.disabled=false;saveBtn.textContent='Save Medicine';
+ }
+});
+
+initialize();
+</script>
+</body>
+</html>

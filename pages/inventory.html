@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inventory | HAGAI PHARMACY</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f7fc;font-family:Arial,sans-serif;color:#17243b}
+header{background:white;padding:18px 25px;border-bottom:1px solid #e5eaf2;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:20px;font-weight:bold;color:#1769e0}
+a{color:#1769e0;text-decoration:none}
+main{max-width:1450px;margin:auto;padding:24px}
+.top,.toolbar{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+h1{font-size:27px;margin:0 0 7px}
+.sub,small{color:#77849a}
+button{border:0;border-radius:8px;padding:11px 16px;cursor:pointer;font-weight:bold}
+.primary{background:#1769e0;color:white}
+.secondary{background:#eaf1ff;color:#1769e0}
+input,select{padding:11px;border:1px solid #dce3ee;border-radius:8px;font:inherit;background:white}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:22px 0}
+.card,.panel{background:white;border:1px solid #e5eaf2;border-radius:12px;padding:19px}
+.number{font-size:25px;font-weight:bold;margin-top:9px}
+.toolbar{margin-bottom:17px}
+#search{width:min(400px,100%)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:1050px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #e5eaf2;font-size:13px}
+th{background:#f8faff;color:#77849a}
+.pill{padding:5px 9px;border-radius:20px;background:#e8f8ef;color:#16834b;font-size:11px}
+.low{background:#fff2dc;color:#a76700}
+.expired{background:#ffe9e9;color:#c22}
+.soon{background:#fff4d8;color:#9b6500}
+.notice{display:none;padding:12px;margin:15px 0;border-radius:8px;font-size:13px}
+.notice.show{display:block}
+.error{background:#ffe9e9;color:#a21e1e}
+.empty{text-align:center;color:#77849a;padding:30px}
+@media(max-width:850px){.cards{grid-template-columns:1fr 1fr}}
+@media(max-width:550px){main{padding:13px}.cards{grid-template-columns:1fr 1fr}header{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">✚ HAGAI PHARMACY</div>
+ <a href="../index.html">← Dashboard</a>
+</header>
+
+<main>
+ <div class="top">
+  <div>
+   <h1>Inventory Management</h1>
+   <div class="sub">Ufuatiliaji wa stock, batches, matawi na tarehe za mwisho wa matumizi</div>
+  </div>
+  <button class="secondary" id="refresh">↻ Refresh Stock</button>
+ </div>
+
+ <div id="notice" class="notice"></div>
+
+ <section class="cards">
+  <div class="card"><small>AINA ZA DAWA</small><div class="number" id="medicineCount">0</div></div>
+  <div class="card"><small>JUMLA YA STOCK</small><div class="number" id="stockUnits">0</div></div>
+  <div class="card"><small>LOW / OUT OF STOCK</small><div class="number" id="lowCount">0</div></div>
+  <div class="card"><small>EXPIRED BATCHES</small><div class="number" id="expiredCount">0</div></div>
+ </section>
+
+ <section class="panel">
+  <div class="toolbar">
+   <input id="search" placeholder="Tafuta dawa, batch au barcode...">
+   <select id="branchFilter"><option value="all">Matawi yote</option></select>
+   <select id="statusFilter">
+    <option value="all">Hali zote</option>
+    <option value="valid">Stock halali</option>
+    <option value="low">Low stock</option>
+    <option value="out">Out of stock</option>
+    <option value="expired">Expired</option>
+    <option value="soon">Expiring within 90 days</option>
+   </select>
+  </div>
+  <div class="tablewrap">
+   <table>
+    <thead>
+     <tr>
+      <th>DAWA</th><th>BARCODE / SKU</th><th>BRANCH</th>
+      <th>BATCH NUMBER</th><th>EXPIRY DATE</th>
+      <th>BUY PRICE</th><th>SELL PRICE</th><th>QTY</th><th>STATUS</th>
+     </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+   </table>
+   <div class="empty" id="empty">Inapakia inventory...</div>
+  </div>
+ </section>
+ <p class="sub" style="margin-top:15px">HAGAI PHARMACY · Live inventory records</p>
+</main>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import {supabase} from '../assets/js/supabase.js';
+
+const $=id=>document.getElementById(id);
+let membership=null,branches=[],medicines=[],batches=[],allRows=[];
+
+function esc(v){
+ return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function money(v){
+ return 'TZS '+Number(v||0).toLocaleString('en-US',{maximumFractionDigits:2});
+}
+function notify(message,type='error'){
+ $('notice').textContent=message;
+ $('notice').className='notice show '+type;
+}
+function dateText(value){
+ if(!value)return '—';
+ return new Date(value+'T00:00:00').toLocaleDateString();
+}
+function statusOf(batch,medicine){
+ const today=new Date();today.setHours(0,0,0,0);
+ const expiry=new Date(batch.expiry_date+'T00:00:00');
+ const days=Math.ceil((expiry-today)/86400000);
+ const qty=Number(batch.quantity_available||0);
+ if(days<0)return {key:'expired',label:'EXPIRED',className:'expired'};
+ if(qty<=0)return {key:'out',label:'OUT OF STOCK',className:'expired'};
+ if(days<=90)return {key:'soon',label:'EXPIRING SOON',className:'soon'};
+ if(qty<=Number(medicine.reorder_level||0))return {key:'low',label:'LOW STOCK',className:'low'};
+ return {key:'valid',label:'AVAILABLE',className:''};
+}
+
+async function initialize(){
+ const {data:{session},error:sessionError}=await supabase.auth.getSession();
+ if(sessionError)throw sessionError;
+ if(!session){location.replace('../login.html');return;}
+
+ const {data:m,error}=await supabase.from('company_members')
+  .select('company_id,branch_id,role,membership_scope')
+  .eq('user_id',session.user.id).limit(1).maybeSingle();
+ if(error)throw error;
+ if(!m)throw new Error('Akaunti haina membership ya kampuni.');
+ membership={companyId:m.company_id,branchId:m.branch_id,scope:m.membership_scope};
+
+ const {data:branchData,error:branchError}=await supabase.from('branches')
+  .select('id,name,is_active').eq('company_id',membership.companyId)
+  .eq('is_active',true).order('name');
+ if(branchError)throw branchError;
+ branches=branchData||[];
+
+ if(membership.scope==='branch'){
+  branches=branches.filter(b=>b.id===membership.branchId);
+  $('branchFilter').innerHTML=branches.map(b=>
+   `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+  $('branchFilter').disabled=true;
+ }else{
+  $('branchFilter').innerHTML='<option value="all">Matawi yote</option>'+
+   branches.map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+ }
+
+ await loadInventory();
+}
+
+async function loadInventory(){
+ $('empty').style.display='block';
+ $('empty').textContent='Inapakia inventory...';
+
+ const [medicineResult,batchResult]=await Promise.all([
+  supabase.from('medicines')
+   .select('id,name,generic_name,strength,barcode,sku,reorder_level,is_active')
+   .eq('company_id',membership.companyId).eq('is_active',true).order('name'),
+  supabase.from('medicine_batches')
+   .select('id,medicine_id,branch_id,batch_number,expiry_date,quantity_available,purchase_price,selling_price')
+   .eq('company_id',membership.companyId).order('expiry_date')
+ ]);
+
+ if(medicineResult.error)throw medicineResult.error;
+ if(batchResult.error)throw batchResult.error;
+
+ medicines=medicineResult.data||[];
+ batches=batchResult.data||[];
+
+ if(membership.scope==='branch'){
+  batches=batches.filter(b=>b.branch_id===membership.branchId);
+ }
+ const medicineMap=Object.fromEntries(medicines.map(m=>[m.id,m]));
+ allRows=batches.filter(b=>medicineMap[b.medicine_id]).map(b=>({
+  batch:b,medicine:medicineMap[b.medicine_id]
+ }));
+
+ render();
+}
+
+function render(){
+ const term=$('search').value.trim().toLowerCase();
+ const branch=$('branchFilter').value;
+ const filter=$('statusFilter').value;
+ const branchMap=Object.fromEntries(branches.map(b=>[b.id,b.name]));
+
+ const totalUnits=allRows.reduce((n,r)=>n+Number(r.batch.quantity_available||0),0);
+ const lowIds=new Set();
+ let expired=0;
+
+ allRows.forEach(r=>{
+  const s=statusOf(r.batch,r.medicine);
+  if(s.key==='low'||s.key==='out')lowIds.add(r.medicine.id);
+  if(s.key==='expired')expired++;
+ });
+
+ $('medicineCount').textContent=new Set(allRows.map(r=>r.medicine.id)).size;
+ $('stockUnits').textContent=totalUnits.toLocaleString();
+ $('lowCount').textContent=lowIds.size;
+ $('expiredCount').textContent=expired;
+
+ const filtered=allRows.filter(r=>{
+  const s=statusOf(r.batch,r.medicine);
+  const m=r.medicine,b=r.batch;
+  const text=[m.name,m.generic_name,m.strength,m.barcode,m.sku,b.batch_number].join(' ').toLowerCase();
+  return (!term||text.includes(term))&&
+   (branch==='all'||b.branch_id===branch)&&
+   (filter==='all'||s.key===filter);
+ });
+
+ $('rows').innerHTML=filtered.map(r=>{
+  const m=r.medicine,b=r.batch,s=statusOf(b,m);
+  return `<tr>
+   <td><strong>${esc(m.name)}</strong><br><small>${esc(m.generic_name||'')} ${esc(m.strength||'')}</small></td>
+   <td>${esc(m.barcode||m.sku||'—')}</td>
+   <td>${esc(branchMap[b.branch_id]||'—')}</td>
+   <td>${esc(b.batch_number)}</td>
+   <td>${dateText(b.expiry_date)}</td>
+   <td>${money(b.purchase_price)}</td>
+   <td>${money(b.selling_price)}</td>
+   <td><strong>${Number(b.quantity_available||0).toLocaleString()}</strong></td>
+   <td><span class="pill ${s.className}">${s.label}</span></td>
+  </tr>`;
+ }).join('');
+
+ $('empty').style.display=filtered.length?'none':'block';
+ $('empty').textContent=term||filter!=='all'||branch!=='all'?
+  'Hakuna stock inayolingana na utafutaji wako.':
+  'Hakuna batches za stock zilizopatikana.';
+}
+
+$('search').addEventListener('input',render);
+$('branchFilter').addEventListener('change',render);
+$('statusFilter').addEventListener('change',render);
+$('refresh').addEventListener('click',async()=>{
+ try{
+  await loadInventory();
+  notify('Inventory imesasishwa.','success');
+ }catch(e){notify(e.message);}
+});
+
+initialize().catch(e=>{
+ console.error('Inventory module:',e);
+ notify('Hitilafu ya kupakia inventory: '+e.message);
+ $('empty').textContent='Imeshindikana kupakia inventory.';
+});
+</script>
+</body>
+</html>

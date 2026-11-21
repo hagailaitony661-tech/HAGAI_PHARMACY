@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suppliers | HAGAI PHARMACY</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f7fc;font-family:Arial,sans-serif;color:#17243b}
+header{background:white;padding:18px 25px;border-bottom:1px solid #e5eaf2;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:20px;font-weight:bold;color:#1769e0}
+a{color:#1769e0;text-decoration:none}
+main{max-width:1250px;margin:auto;padding:25px}
+.top,.toolbar,.actions{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+h1{font-size:27px;margin:0 0 7px}
+.sub,small{color:#77849a}
+button{border:0;border-radius:8px;padding:11px 16px;cursor:pointer;font-weight:bold}
+.primary{background:#1769e0;color:white}
+.secondary{background:#eaf1ff;color:#1769e0}
+.danger{background:#ffe9e9;color:#bd2525}
+input,textarea,select{padding:12px;border:1px solid #dce3ee;border-radius:8px;font:inherit;width:100%;background:white}
+#search{max-width:420px}
+.panel,.card{background:white;border:1px solid #e5eaf2;border-radius:12px;padding:19px}
+.card{margin:22px 0}
+.number{font-size:27px;font-weight:bold;margin-top:8px}
+.toolbar{margin-bottom:16px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:850px}
+th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #e5eaf2;font-size:13px}
+th{color:#77849a;background:#f8faff}
+.notice{display:none;padding:12px;margin:15px 0;border-radius:8px;font-size:13px}
+.notice.show{display:block}
+.error{background:#ffe9e9;color:#a21e1e}
+.success{background:#e8f8ef;color:#176b3b}
+.empty{text-align:center;color:#77849a;padding:30px}
+.status{padding:5px 9px;border-radius:20px;background:#e8f8ef;color:#16834b;font-size:11px}
+.inactive{background:#ffe9e9;color:#bd2525}
+.modal{display:none;position:fixed;inset:0;background:#101b2b99;z-index:5;align-items:center;justify-content:center;padding:15px}
+.modal.show{display:flex}
+.dialog{background:white;width:min(650px,100%);max-height:94vh;overflow:auto;border-radius:14px;padding:22px}
+.field{margin:14px 0}
+.field label{display:block;font-size:13px;font-weight:bold;margin-bottom:7px}
+.formbuttons{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+@media(max-width:650px){main{padding:14px}header{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">✚ HAGAI PHARMACY</div>
+ <a href="../index.html">← Dashboard</a>
+</header>
+<main>
+ <div class="top">
+  <div>
+   <h1>Suppliers Management</h1>
+   <div class="sub">Usimamizi wa wasambazaji wa dawa na bidhaa</div>
+  </div>
+  <button class="primary" id="addBtn">＋ Sajili Supplier</button>
+ </div>
+
+ <div id="notice" class="notice"></div>
+
+ <section class="card">
+  <small>JUMLA YA WASAMBAZAJI</small>
+  <div class="number" id="total">0</div>
+  <small id="activeTotal">0 active suppliers</small>
+ </section>
+
+ <section class="panel">
+  <div class="toolbar">
+   <input id="search" placeholder="Tafuta jina, simu, email au tax number...">
+   <select id="statusFilter" style="max-width:180px">
+    <option value="all">Wasambazaji wote</option>
+    <option value="active">Active</option>
+    <option value="inactive">Inactive</option>
+   </select>
+   <button class="secondary" id="refreshBtn">↻ Refresh</button>
+  </div>
+  <div class="tablewrap">
+   <table>
+    <thead>
+     <tr><th>SUPPLIER</th><th>CONTACT PERSON</th><th>SIMU</th><th>EMAIL</th><th>TIN</th><th>STATUS</th><th>VITENDO</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+   </table>
+   <div class="empty" id="empty">Inapakia wasambazaji...</div>
+  </div>
+ </section>
+</main>
+
+<div class="modal" id="modal">
+ <div class="dialog">
+  <h2 id="formTitle">Sajili Supplier</h2>
+  <form id="supplierForm">
+   <input type="hidden" name="id">
+   <div class="field">
+    <label>Jina la kampuni / Supplier *</label>
+    <input name="name" required maxlength="180" placeholder="Jina la supplier">
+   </div>
+   <div class="field">
+    <label>Mtu wa mawasiliano</label>
+    <input name="contact_person" maxlength="150" placeholder="Contact person">
+   </div>
+   <div class="field">
+    <label>Namba ya simu</label>
+    <input name="phone" maxlength="40" placeholder="07XXXXXXXX">
+   </div>
+   <div class="field">
+    <label>Email</label>
+    <input name="email" type="email" maxlength="150">
+   </div>
+   <div class="field">
+    <label>Anuani</label>
+    <textarea name="address" rows="2" maxlength="500"></textarea>
+   </div>
+   <div class="field">
+    <label>Namba ya kodi (TIN)</label>
+    <input name="tax_number" maxlength="80">
+   </div>
+   <div class="field">
+    <label>Maelezo ya ziada</label>
+    <textarea name="notes" rows="3" maxlength="1000"></textarea>
+   </div>
+   <div class="field">
+    <label>Hali ya Supplier</label>
+    <select name="is_active">
+     <option value="true">Active</option>
+     <option value="false">Inactive</option>
+    </select>
+   </div>
+   <div class="formbuttons">
+    <button type="button" class="secondary" id="cancelBtn">Ghairi</button>
+    <button type="submit" class="primary" id="saveBtn">Hifadhi</button>
+   </div>
+  </form>
+ </div>
+</div>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import { supabase } from '../assets/js/supabase.js';
+
+const $ = id => document.getElementById(id);
+let membership = null;
+let suppliers = [];
+
+function esc(value) {
+ return String(value ?? '').replace(/[&<>"']/g, c => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+ }[c]));
+}
+
+function notice(message,type='success') {
+ $('notice').textContent = message;
+ $('notice').className = 'notice show ' + type;
+}
+
+function closeForm() {
+ $('modal').classList.remove('show');
+ $('supplierForm').reset();
+ $('supplierForm').elements.id.value = '';
+}
+
+function openForm(s=null) {
+ const f=$('supplierForm');
+ f.reset();
+ f.elements.id.value=s?.id || '';
+ f.elements.name.value=s?.name || '';
+ f.elements.contact_person.value=s?.contact_person || '';
+ f.elements.phone.value=s?.phone || '';
+ f.elements.email.value=s?.email || '';
+ f.elements.address.value=s?.address || '';
+ f.elements.tax_number.value=s?.tax_number || '';
+ f.elements.notes.value=s?.notes || '';
+ f.elements.is_active.value=String(s?.is_active ?? true);
+ $('formTitle').textContent=s?'Hariri Supplier':'Sajili Supplier';
+ $('modal').classList.add('show');
+}
+
+function render() {
+ const term=$('search').value.trim().toLowerCase();
+ const status=$('statusFilter').value;
+
+ const filtered=suppliers.filter(s=>{
+  const matches=[s.name,s.contact_person,s.phone,s.email,s.tax_number]
+   .some(v=>String(v||'').toLowerCase().includes(term));
+  const active=status==='all' ||
+   (status==='active' && s.is_active) ||
+   (status==='inactive' && !s.is_active);
+  return matches && active;
+ });
+
+ $('total').textContent=suppliers.length;
+ $('activeTotal').textContent=
+  suppliers.filter(s=>s.is_active).length+' active suppliers';
+
+ $('rows').innerHTML=filtered.map(s=>`
+  <tr>
+   <td><strong>${esc(s.name)}</strong></td>
+   <td>${esc(s.contact_person||'—')}</td>
+   <td>${esc(s.phone||'—')}</td>
+   <td>${esc(s.email||'—')}</td>
+   <td>${esc(s.tax_number||'—')}</td>
+   <td><span class="status ${s.is_active?'':'inactive'}">${s.is_active?'ACTIVE':'INACTIVE'}</span></td>
+   <td><div class="actions">
+    <button class="secondary" data-edit="${esc(s.id)}">Hariri</button>
+    <button class="danger" data-delete="${esc(s.id)}">Futa</button>
+   </div></td>
+  </tr>
+ `).join('');
+
+ $('empty').style.display=filtered.length?'none':'block';
+ $('empty').textContent=term||status!=='all'
+  ?'Hakuna supplier anayelingana na utafutaji.'
+  :'Bado hakuna suppliers waliosajiliwa.';
+}
+
+async function loadSuppliers() {
+ $('empty').style.display='block';
+ $('empty').textContent='Inapakia wasambazaji...';
+
+ const {data,error}=await supabase
+  .from('suppliers')
+  .select('id,name,contact_person,phone,email,address,tax_number,notes,is_active,created_at')
+  .eq('company_id',membership.companyId)
+  .order('created_at',{ascending:false});
+
+ if(error) throw error;
+ suppliers=data||[];
+ render();
+}
+
+async function initialize() {
+ const {data:{session},error:sessionError}=await supabase.auth.getSession();
+ if(sessionError) throw sessionError;
+
+ if(!session) {
+  window.location.replace('../login.html');
+  return;
+ }
+
+ const {data:member,error}=await supabase
+  .from('company_members')
+  .select('company_id,branch_id,role,membership_scope')
+  .eq('user_id',session.user.id)
+  .limit(1)
+  .maybeSingle();
+
+ if(error) throw error;
+ if(!member) throw new Error('Akaunti haina membership ya kampuni.');
+
+ membership={
+  companyId:member.company_id,
+  branchId:member.branch_id,
+  role:member.role,
+  scope:member.membership_scope
+ };
+
+ await loadSuppliers();
+}
+
+$('addBtn').addEventListener('click',()=>openForm());
+$('cancelBtn').addEventListener('click',closeForm);
+$('search').addEventListener('input',render);
+$('statusFilter').addEventListener('change',render);
+
+$('refreshBtn').addEventListener('click',async()=>{
+ try {
+  await loadSuppliers();
+  notice('Orodha imesasishwa.');
+ } catch(e) {
+  notice(e.message,'error');
+ }
+});
+
+$('supplierForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ if(!membership) return;
+
+ const f=event.currentTarget;
+ const id=f.elements.id.value;
+ const payload={
+  name:f.elements.name.value.trim(),
+  contact_person:f.elements.contact_person.value.trim()||null,
+  phone:f.elements.phone.value.trim()||null,
+  email:f.elements.email.value.trim()||null,
+  address:f.elements.address.value.trim()||null,
+  tax_number:f.elements.tax_number.value.trim()||null,
+  notes:f.elements.notes.value.trim()||null,
+  is_active:f.elements.is_active.value==='true'
+ };
+
+ if(!payload.name) {
+  notice('Jaza jina la supplier.','error');
+  return;
+ }
+
+ $('saveBtn').disabled=true;
+ $('saveBtn').textContent='Inahifadhi...';
+
+ try {
+  let result;
+  if(id) {
+   result=await supabase.from('suppliers')
+    .update(payload)
+    .eq('id',id)
+    .eq('company_id',membership.companyId);
+  } else {
+   result=await supabase.from('suppliers').insert({
+    ...payload,
+    company_id:membership.companyId
+   });
+  }
+
+  if(result.error) throw result.error;
+
+  closeForm();
+  await loadSuppliers();
+  notice(id?'Supplier amehaririwa.':'Supplier amesajiliwa.');
+ } catch(e) {
+  notice('Imeshindikana kuhifadhi: '+e.message,'error');
+ } finally {
+  $('saveBtn').disabled=false;
+  $('saveBtn').textContent='Hifadhi';
+ }
+});
+
+$('rows').addEventListener('click',async event=>{
+ const edit=event.target.closest('[data-edit]');
+ const del=event.target.closest('[data-delete]');
+
+ if(edit) {
+  const s=suppliers.find(x=>x.id===edit.dataset.edit);
+  if(s) openForm(s);
+ }
+
+ if(del) {
+  const s=suppliers.find(x=>x.id===del.dataset.delete);
+  if(!s) return;
+
+  if(!confirm('Una uhakika unataka kufuta supplier '+s.name+'?')) return;
+
+  try {
+   const {error}=await supabase.from('suppliers')
+    .delete()
+    .eq('id',s.id)
+    .eq('company_id',membership.companyId);
+
+   if(error) throw error;
+   await loadSuppliers();
+   notice('Supplier amefutwa.');
+  } catch(e) {
+   notice('Imeshindikana kufuta supplier. Huenda ana historia ya manunuzi. '+e.message,'error');
+  }
+ }
+});
+
+initialize().catch(e=>{
+ console.error('Suppliers module:',e);
+ notice('Hitilafu: '+e.message,'error');
+ $('empty').textContent='Imeshindikana kupakia suppliers.';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f4f6fa;color:#26354a;font-size:13px}
+.sidebar{position:fixed;inset:0 auto 0 0;width:235px;background:white;border-right:1px solid #e7ebf0;padding:25px 15px;z-index:5}
+.sidebar h2{color:#2584d8;font-size:23px}
+.sidebar>small{color:#8996a6;font-size:10px}
+nav{display:grid;gap:7px;margin-top:35px}
+nav a{padding:12px;text-decoration:none;color:#59677a;border-radius:7px}
+nav a:hover,nav a.active{background:#e5efff;color:#247bd2}
+.profile{position:absolute;bottom:20px;border-top:1px solid #eee;padding-top:15px;width:85%;font-weight:bold}
+.profile small{color:#8996a6;font-weight:normal}
+main{margin-left:235px}
+header{height:65px;background:white;border-bottom:1px solid #e8edf2;display:flex;align-items:center;justify-content:space-between;padding:0 25px}
+header input{width:350px;max-width:65%;padding:11px;border:1px solid #e1e6ec;border-radius:7px}
+header button{display:none}
+.content{padding:25px}
+.heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;gap:12px}
+.heading h1{font-size:22px;margin-bottom:7px}
+.heading p{color:#8491a1;font-size:11px}
+select{padding:10px;border:1px solid #e0e5ec;border-radius:6px;background:white}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:17px}
+.stats article,.panel{background:white;border:1px solid #e9edf2;border-radius:10px;padding:17px;min-width:0}
+.stats small{color:#8591a1}
+.stats h2{font-size:19px;margin:12px 0 8px;overflow-wrap:anywhere}
+.stats em{font-size:10px;color:#19a77a;font-style:normal}
+.red{color:#e34e55}
+.grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px}
+.panel h3{font-size:14px;margin-bottom:18px}
+.panel h3 span{float:right;color:#8190a2;font-size:10px;font-weight:normal}
+.wide{grid-column:span 2}
+.chart{height:190px;display:flex;flex-direction:column;justify-content:end;background:repeating-linear-gradient(to bottom,white 0,white 37px,#edf1f6 38px)}
+.bars{height:155px;display:flex;align-items:end;gap:7%;padding:0 15px}
+.bars i{flex:1;background:linear-gradient(#58a6ed,#3180d5);border-radius:5px 5px 0 0}
+.days{display:flex;justify-content:space-between;color:#8c98a8;font-size:9px;padding:9px 0}
+.items{display:grid;gap:17px}
+.items p{display:flex;justify-content:space-between;gap:8px;font-size:11px}
+.items b{font-size:10px;white-space:nowrap}
+.stock{display:flex;align-items:center;justify-content:space-around;gap:12px;flex-wrap:wrap}
+.donut{width:115px;height:115px;border-radius:50%;background:conic-gradient(#3998eb 0 35%,#27ad79 35% 80%,#e4b94d 80% 93%,#e45a5a 93%);display:grid;place-items:center;position:relative}
+.donut:before{content:"";position:absolute;width:72px;height:72px;background:white;border-radius:50%}
+.donut b{z-index:1;font-size:17px}
+footer{text-align:center;padding:25px;color:#929eac;font-size:10px}
+@media(max-width:1100px){.stats{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}}
+@media(max-width:650px){.sidebar{width:65px;padding:15px 5px}.sidebar h2{font-size:10px;overflow:hidden}.sidebar>small,.profile{display:none}nav{margin-top:25px}nav a{font-size:0;text-align:center;padding:13px 2px}nav a:first-letter{font-size:17px}main{margin-left:65px}header{padding:0 10px}header button{display:block}header input{width:60%;font-size:10px}.content{padding:12px}.heading{align-items:flex-start;flex-direction:column}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stats article{padding:11px}.stats h2{font-size:14px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+
+/* HAGAI PHARMACY - Notification Bell */
+header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+header .header-actions #notificationBtn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 42px;
+  height: 42px;
+  padding: 8px;
+  border: 1px solid #e1e6ec;
+  border-radius: 9px;
+  background: #f5f8fc;
+  color: #247bd2;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+header .header-actions #notificationBtn:hover {
+  background: #e5efff;
+}
+
+header .header-actions #notificationCount {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+}

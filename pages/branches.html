@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Branches Management | HAGAI PHARMACY</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f7fc;font-family:Arial,sans-serif;color:#17243b}
+header{background:white;padding:18px 25px;border-bottom:1px solid #e5eaf2;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:20px;font-weight:bold;color:#1769e0}
+a{color:#1769e0;text-decoration:none}
+main{max-width:1250px;margin:auto;padding:25px}
+.top,.toolbar{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+h1{font-size:27px;margin:0 0 7px}
+.sub,small{color:#77849a}
+button{border:0;border-radius:8px;padding:11px 16px;cursor:pointer;font-weight:bold}
+.primary{background:#1769e0;color:white}
+.secondary{background:#eaf1ff;color:#1769e0}
+input,textarea{padding:12px;border:1px solid #dce3ee;border-radius:8px;font:inherit;width:100%;background:white}
+.panel,.card{background:white;border:1px solid #e5eaf2;border-radius:12px;padding:19px}
+.card{margin:22px 0}
+.number{font-size:27px;font-weight:bold;margin-top:8px}
+.toolbar{margin-bottom:16px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:850px}
+th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #e5eaf2;font-size:13px}
+th{color:#77849a;background:#f8faff}
+.notice{display:none;padding:12px;margin:15px 0;border-radius:8px;font-size:13px}
+.notice.show{display:block}
+.error{background:#ffe9e9;color:#a21e1e}
+.success{background:#e8f8ef;color:#176b3b}
+.empty{text-align:center;color:#77849a;padding:30px}
+.status{padding:5px 9px;border-radius:20px;background:#e8f8ef;color:#16834b;font-size:11px}
+.inactive{background:#ffe9e9;color:#bd2525}
+.modal{display:none;position:fixed;inset:0;background:#101b2b99;z-index:5;align-items:center;justify-content:center;padding:15px}
+.modal.show{display:flex}
+.dialog{background:white;width:min(650px,100%);max-height:94vh;overflow:auto;border-radius:14px;padding:22px}
+.field{margin:14px 0}
+.field label{display:block;font-size:13px;font-weight:bold;margin-bottom:7px}
+.formbuttons{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.check{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:14px}
+.check input{width:auto}
+.actions{display:flex;gap:7px;flex-wrap:wrap}
+@media(max-width:650px){main{padding:14px}header{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">✚ HAGAI PHARMACY</div>
+ <a href="../index.html">← Dashboard</a>
+</header>
+<main>
+ <div class="top">
+  <div>
+   <h1>Branches Management</h1>
+   <div class="sub">Usimamizi wa matawi yote ya kampuni</div>
+  </div>
+  <button class="primary" id="addBtn">＋ Sajili Tawi</button>
+ </div>
+
+ <div id="notice" class="notice"></div>
+
+ <section class="card">
+  <small>JUMLA YA MATAWI</small>
+  <div class="number" id="total">0</div>
+  <small id="activeTotal">0 matawi active</small>
+ </section>
+
+ <section class="panel">
+  <div class="toolbar">
+   <input id="search" placeholder="Tafuta jina, code, simu au eneo..." style="max-width:420px">
+   <button class="secondary" id="refreshBtn">↻ Refresh</button>
+  </div>
+  <div class="tablewrap">
+   <table>
+    <thead>
+     <tr>
+      <th>TAWI</th><th>BRANCH CODE</th><th>SIMU</th>
+      <th>EMAIL</th><th>MAHALI</th><th>AINA</th><th>STATUS</th><th>VITENDO</th>
+     </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+   </table>
+   <div class="empty" id="empty">Inapakia matawi...</div>
+  </div>
+ </section>
+</main>
+
+<div class="modal" id="modal">
+ <div class="dialog">
+  <h2 id="formTitle">Sajili Tawi</h2>
+  <form id="branchForm">
+   <input type="hidden" name="id">
+   <div class="field">
+    <label>Jina la tawi *</label>
+    <input name="name" required maxlength="150" placeholder="Mfano: Mbeya Branch">
+   </div>
+   <div class="field">
+    <label>Branch Code *</label>
+    <input name="branch_code" required maxlength="40" placeholder="Mfano: MBY001">
+   </div>
+   <div class="field">
+    <label>Namba ya simu</label>
+    <input name="phone" maxlength="40" placeholder="07XXXXXXXX">
+   </div>
+   <div class="field">
+    <label>Email</label>
+    <input name="email" type="email" maxlength="180" placeholder="branch@example.com">
+   </div>
+   <div class="field">
+    <label>Anuani / Eneo</label>
+    <textarea name="address" rows="3" maxlength="500" placeholder="Mkoa, wilaya, eneo..."></textarea>
+   </div>
+   <label class="check">
+    <input type="checkbox" name="is_head_office">
+    Hili ni tawi kuu (Head Office)
+   </label>
+   <label class="check">
+    <input type="checkbox" name="is_active" checked>
+    Tawi linafanya kazi (Active)
+   </label>
+   <div class="formbuttons">
+    <button type="button" class="secondary" id="cancelBtn">Ghairi</button>
+    <button type="submit" class="primary" id="saveBtn">Hifadhi Tawi</button>
+   </div>
+  </form>
+ </div>
+</div>
+
+<script type="module">
+import { dashboardProtection } from '../assets/js/guard.js';
+if (!(await dashboardProtection)) throw new Error('Dashboard access denied');
+
+import {supabase} from '../assets/js/supabase.js';
+
+const $=id=>document.getElementById(id);
+let membership=null;
+let branches=[];
+let canManage=false;
+
+function notice(message,type='success'){
+ const el=$('notice');
+ el.textContent=message;
+ el.className='notice show '+type;
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+function escapeHTML(value){
+ return String(value??'').replace(/[&<>"']/g,c=>({
+ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+ }[c]));
+}
+function openForm(branch=null){
+ $('branchForm').reset();
+ $('branchForm').elements.id.value=branch?.id||'';
+ $('formTitle').textContent=branch?'Hariri Tawi':'Sajili Tawi';
+ $('branchForm').elements.name.value=branch?.name||'';
+ $('branchForm').elements.branch_code.value=branch?.branch_code||'';
+ $('branchForm').elements.phone.value=branch?.phone||'';
+ $('branchForm').elements.email.value=branch?.email||'';
+ $('branchForm').elements.address.value=branch?.address||'';
+ $('branchForm').elements.is_head_office.checked=!!branch?.is_head_office;
+ $('branchForm').elements.is_active.checked=branch?!!branch.is_active:true;
+ $('modal').classList.add('show');
+}
+function closeForm(){$('modal').classList.remove('show');}
+
+function render(){
+ const q=$('search').value.trim().toLowerCase();
+ const list=branches.filter(b=>
+  [b.name,b.branch_code,b.phone,b.email,b.address]
+   .some(v=>String(v||'').toLowerCase().includes(q))
+ );
+ $('total').textContent=branches.length;
+ $('activeTotal').textContent=branches.filter(b=>b.is_active).length+' matawi active';
+ $('rows').innerHTML=list.map(b=>`
+  <tr>
+   <td><strong>${escapeHTML(b.name)}</strong></td>
+   <td>${escapeHTML(b.branch_code)}</td>
+   <td>${escapeHTML(b.phone||'-')}</td>
+   <td>${escapeHTML(b.email||'-')}</td>
+   <td>${escapeHTML(b.address||'-')}</td>
+   <td>${b.is_head_office?'Head Office':'Branch'}</td>
+   <td><span class="status ${b.is_active?'':'inactive'}">${b.is_active?'ACTIVE':'INACTIVE'}</span></td>
+   <td>
+    ${canManage?`<div class="actions">
+     <button class="secondary" data-edit="${b.id}">Hariri</button>
+    </div>`:'-' }
+   </td>
+  </tr>
+ `).join('');
+ $('empty').style.display=list.length?'none':'block';
+ $('empty').textContent='Hakuna matawi yaliyopatikana.';
+ document.querySelectorAll('[data-edit]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+   const b=branches.find(x=>x.id===btn.dataset.edit);
+   if(b)openForm(b);
+  });
+ });
+}
+
+async function loadBranches(){
+ $('empty').style.display='block';
+ $('empty').textContent='Inapakia matawi...';
+ const {data,error}=await supabase.from('branches')
+  .select('id,company_id,name,branch_code,phone,email,address,is_head_office,is_active,created_at')
+  .eq('company_id',membership.companyId)
+  .order('created_at',{ascending:true});
+ if(error)throw error;
+ branches=data||[];
+ render();
+}
+
+async function initialize(){
+ const {data:{session},error:sessionError}=await supabase.auth.getSession();
+ if(sessionError)throw sessionError;
+ if(!session){window.location.replace('../login.html');return;}
+
+ const {data:member,error}=await supabase.from('company_members')
+  .select('company_id,branch_id,role,membership_scope')
+  .eq('user_id',session.user.id)
+  .limit(1).maybeSingle();
+ if(error)throw error;
+ if(!member)throw new Error('Akaunti haina membership ya kampuni.');
+
+ membership={
+  companyId:member.company_id,
+  branchId:member.branch_id,
+  role:member.role,
+  scope:member.membership_scope
+ };
+
+ canManage=['owner','admin'].includes(member.role)&&member.membership_scope==='company';
+ if(!canManage){
+  $('addBtn').style.display='none';
+  notice('Una ruhusa ya kuona matawi tu. Owner/Admin wa kampuni ndiye anayeweza kusimamia matawi.','error');
+ }
+ await loadBranches();
+}
+
+$('addBtn').addEventListener('click',()=>openForm());
+$('cancelBtn').addEventListener('click',closeForm);
+$('search').addEventListener('input',render);
+$('refreshBtn').addEventListener('click',async()=>{
+ try{await loadBranches();notice('Taarifa za matawi zimefanyiwa refresh.');}
+ catch(e){notice(e.message,'error');}
+});
+$('modal').addEventListener('click',e=>{
+ if(e.target===$('modal'))closeForm();
+});
+
+$('branchForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(!canManage){notice('Huna ruhusa ya kufanya mabadiliko.','error');return;}
+ const f=e.currentTarget;
+ const id=f.elements.id.value;
+ const name=f.elements.name.value.trim();
+ const branch_code=f.elements.branch_code.value.trim().toUpperCase();
+ if(!name||!branch_code){notice('Jaza jina na branch code.','error');return;}
+
+ const payload={
+  name,branch_code,
+  phone:f.elements.phone.value.trim()||null,
+  email:f.elements.email.value.trim()||null,
+  address:f.elements.address.value.trim()||null,
+  is_head_office:f.elements.is_head_office.checked,
+  is_active:f.elements.is_active.checked
+ };
+ $('saveBtn').disabled=true;
+ $('saveBtn').textContent='Inahifadhi...';
+ try{
+  let result;
+  if(id){
+   result=await supabase.from('branches').update(payload)
+    .eq('id',id).eq('company_id',membership.companyId).select('id').maybeSingle();
+  }else{
+   result=await supabase.from('branches').insert({
+    ...payload,company_id:membership.companyId
+   }).select('id').single();
+  }
+  if(result.error)throw result.error;
+  if(!result.data)throw new Error('Hakuna mabadiliko yaliyohifadhiwa. Hakiki ruhusa zako.');
+  closeForm();
+  await loadBranches();
+  notice(id?'Taarifa za tawi zimebadilishwa.':'Tawi jipya limesajiliwa.');
+ }catch(err){
+  notice(err.message||'Imeshindikana kuhifadhi tawi. Hakiki branch code kama tayari imetumika.','error');
+ }finally{
+  $('saveBtn').disabled=false;
+  $('saveBtn').textContent='Hifadhi Tawi';
+ }
+});
+
+initialize().catch(e=>notice(e.message||'Imeshindikana kufungua matawi.','error'));
+</script>
+</body>
+</html>
