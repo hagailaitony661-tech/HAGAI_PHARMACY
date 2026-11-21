@@ -300,6 +300,8 @@ async function completeSale(){
  const totals=calculate();
  if(totals.discount>totals.subtotal){notice('Punguzo limezidi subtotal.','error');return}
  if(totals.paid>totals.total){notice('Malipo yamezidi jumla ya mauzo.','error');return}
+ // Fungua dirisha wakati mtumiaji amebonyeza kitufe ili browser isizuie print popup.
+ const receiptWindow=window.open('','_blank','width=460,height=720');
  const btn=$('complete');
  btn.disabled=true;btn.textContent='Inahifadhi...';
  try{
@@ -323,12 +325,13 @@ async function completeSale(){
   renderCart();
   await loadProducts();
   await loadSales();
-  printReceipt(data);
- }catch(e){console.error(e);notice(e.message||'Mauzo hayakuhifadhiwa.','error')}
+  if(receiptWindow) printReceipt(data,receiptWindow);
+  else notice('Mauzo yamehifadhiwa. Ruhusu pop-up kisha tumia PRINT kwenye historia ya mauzo.','error');
+ }catch(e){if(receiptWindow&&!receiptWindow.closed)receiptWindow.close();console.error(e);notice(e.message||'Mauzo hayakuhifadhiwa.','error')}
  finally{btn.disabled=false;btn.textContent='✓ Kamilisha Mauzo'}
 }
 
-async function printReceipt(sale){
+async function printReceipt(sale,receiptWindow=null){
  const branch=branches.find(b=>b.id===(sale.branch_id||currentBranch()));
  const customer=customers.find(c=>c.id===(sale.customer_id||$('customer').value));
  const paper=Number(companyInfo.receipt_paper_mm)===58?58:80;
@@ -363,7 +366,7 @@ async function printReceipt(sale){
  <section class="totals"><div><span>Jumla ndogo</span><b>${money(sale.subtotal)}</b></div><div><span>Punguzo</span><b>${money(sale.discount)}</b></div><div><span>Kodi</span><b>${money(sale.tax)}</b></div><div class="grand"><span>JUMLA</span><span>${money(total)} TSh</span></div><div><span>Kiasi kilicholipwa</span><b>${money(paid)}</b></div><div class="balance"><span>Salio</span><b>${money(Math.max(0,total-paid))}</b></div></section>
  <hr class="rule"><footer class="thanks"><strong>${escapeHtml(companyInfo.receipt_footer||'ASANTE KWA KUFANYA BIASHARA NASI!')}</strong>Karibu tena.</footer><div class="system">HAGAI PHARMACY MANAGEMENT SYSTEM</div>
  </article><script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`;
- const w=window.open('','_blank','width=460,height=720');
+ const w=receiptWindow||window.open('','_blank','width=460,height=720');
  if(!w){notice('Ruhusu pop-up ili kuchapisha risiti.','error');return}
  w.document.open();w.document.write(html);w.document.close();
 }
@@ -443,9 +446,11 @@ async function loadSales(){
   <td><button class="secondary" data-invoice="${s.id}" data-number="${escapeHtml(s.sale_number)}">Invoice</button></td>
  </tr>`).join(''):'<tr><td colspan="7" class="empty">Hakuna mauzo yaliyorekodiwa bado.</td></tr>';
  $('salesRows').querySelectorAll('[data-receipt]').forEach(btn=>btn.addEventListener('click',async()=>{
+  const printWindow=window.open('','_blank','width=460,height=720');
+  if(!printWindow){notice('Ruhusu pop-up ili kuchapisha risiti.','error');return}
   const {data:s,error}=await supabase.from('sales').select('*').eq('id',btn.dataset.receipt).single();
-  if(error){notice(error.message,'error');return}
-  printReceipt(s);
+  if(error){printWindow.close();notice(error.message,'error');return}
+  printReceipt(s,printWindow);
  }));
  $('salesRows').querySelectorAll('[data-invoice]').forEach(btn=>btn.addEventListener('click',()=>createInvoice(btn.dataset.invoice,btn.dataset.number)));
 }
