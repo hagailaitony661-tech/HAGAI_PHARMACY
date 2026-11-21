@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jisajili | HAGAI PHARMACY</title>
 <link rel="stylesheet" href="assets/css/auth.css">
+<style>
+.registration-options{display:grid;gap:10px;margin:10px 0 18px}
+.registration-option{display:flex;align-items:flex-start;gap:10px;padding:13px;border:1px solid #dce5f1;border-radius:10px;background:#f9fbff;cursor:pointer}
+.registration-option input{width:auto;margin:3px 0 0;flex:0 0 auto}
+.registration-option span{display:grid;gap:5px}
+.registration-option strong{font-size:14px;color:#1d3556}
+.registration-option small{font-size:12px;line-height:1.45;color:#68788e}
+#subBranchFields{padding:14px;background:#fff8e8;border:1px solid #f1dfb5;border-radius:10px;margin:12px 0}
+</style>
 </head>
 <body>
 
@@ -19,14 +28,14 @@
     <form id="signupForm">
 
       <label>Aina ya Usajili</label>
-      <div>
-        <label>
+      <div class="registration-options">
+        <label class="registration-option">
           <input type="radio" name="registrationType" value="main" checked>
-          Main Branch — Sajili kampuni mpya
+          <span><strong>Fungua ofisi yangu mpya</strong><small>Jisajili na uwe Owner wa pharmacy yako.</small></span>
         </label>
-        <label>
+        <label class="registration-option">
           <input type="radio" name="registrationType" value="sub">
-          Sub Branch — Jiunge na kampuni iliyopo
+          <span><strong>Jiunge na ofisi iliyopo</strong><small>Nimepewa Invitation Link na Invitation Code na Owner/Admin.</small></span>
         </label>
       </div>
 
@@ -46,8 +55,7 @@
 
       <div id="subBranchFields" hidden>
         <p class="description">
-          Umealikwa kujiunga na kampuni iliyopo. Tumia Invitation Link
-          uliyopewa na Owner/Admin, kisha weka Invitation Code.
+          Ili kujiunga na ofisi nyingine, fungua Invitation Link uliyopewa na Owner/Admin. Kisha weka Invitation Code hapa chini. Email unayotumia lazima ilingane na email iliyoalikwa.
         </p>
 
         <label>Invitation Code</label>
